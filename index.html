@@ -4541,26 +4541,42 @@ async function loadPopbillTransfers(){
       var jobId=r2.data.jobID||r2.data.jobId||'';
       if(!jobId){ console.warn('[팝빌] jobID 없음:', r2.data); continue; }
 
-      // 3단계: JobState 폴링 (Vercel Hobby 10초 제한 고려)
+      // 3단계: JobState 폴링 (최대 10초 대기)
       var done=false;
-      for(var t=0;t<8;t++){
+      var skipReason='';
+      for(var t=0;t<10;t++){
         await new Promise(function(r){setTimeout(r,1000);});
         var r3=await pbFetch({linkId:lid,secretKey:sk,corpNum,userId,env,action:'getJobState',payload:{jobId}});
         var jState=Number(r3.data.jobState);
+        // errorCode: 1=수집성공, 그 외(2=크레딧부족, 3=오류 등)는 실패
         var jError=Number(r3.data.errorCode||r3.data.ErrorCode||r3.data.error_code||0);
+        var jReason=r3.data.errorReason||r3.data.ErrorReason||'';
         console.log('[팝빌] jobState raw:', JSON.stringify(r3.data));
         if(jState>=3){
-          if(jError!==1){ console.warn('[팝빌] 수집 실패 errorCode:',jError, r3.data.errorReason); break; }
-          done=true; break;
+          if(jError===1){
+            done=true;
+          } else {
+            // errorCode 1 이 아니면 수집 실패 (크레딧 부족, 기관 오류 등)
+            skipReason='errorCode='+jError+' ('+jReason+')';
+            console.warn('[팝빌] 수집 실패 '+skipReason);
+          }
+          break;
         }
       }
-      if(!done){ console.warn('[팝빌] 수집 실패 또는 타임아웃:', jobId); continue; }
+      if(!done){
+        console.warn('[팝빌] 수집 실패/타임아웃 jobId='+jobId+(skipReason?' → '+skipReason:''));
+        continue;
+      }
 
       // 4단계: Search
       console.log('[팝빌] search 요청 시작 jobId='+jobId+' PROXY='+PROXY);
       var r4=await pbFetch({linkId:lid,secretKey:sk,corpNum,userId,env,action:'search',
-        payload:{jobId,tradeType:'A',page:1,perPage:1000}});
+        payload:{jobId,page:1,perPage:1000}});
       console.log('[팝빌] search:', r4.status, r4.data);
+      if(!r4.ok){
+        console.warn('[팝빌] search 실패 ('+r4.status+'):', JSON.stringify(r4.data).slice(0,200));
+        continue;
+      }
       var txList=r4.data.list||r4.data.transList||(Array.isArray(r4.data)?r4.data:[]);
       allTx=allTx.concat(txList);
       } // end dateRanges loop

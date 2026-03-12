@@ -16,11 +16,22 @@ function hmacSha256Base64(secretKey, str) {
 
 function contentMd5(body) {
   if (!body) return '';
-  // 팝빌 공식문서: openssl dgst -sha256 (MD5가 아닌 SHA-256)
   return crypto.createHash('sha256').update(body, 'utf8').digest('base64');
 }
 
+// ─── 토큰 캐시 (요청 단위 내에서 재사용, Vercel 인스턴스 warm 상태에서도 활용) ───
+const _tokenCache = {};
+
 async function getToken(linkId, secretKey, corpNum, env, scope) {
+  const cacheKey = `${linkId}:${corpNum}:${env}:${scope.join(',')}`;
+  const cached   = _tokenCache[cacheKey];
+
+  // 만료 30초 전까지 캐시 사용
+  if (cached && cached.expiresAt > Date.now() + 30_000) {
+    console.log(`[TOKEN] 캐시 사용 (만료까지 ${Math.round((cached.expiresAt - Date.now()) / 1000)}s)`);
+    return cached.token;
+  }
+
   const svcId = env === 'live' ? 'POPBILL' : 'POPBILL_TEST';
   const now   = new Date().toISOString().replace(/\.\d+Z$/, 'Z');
   const ip    = '*';
@@ -33,8 +44,7 @@ async function getToken(linkId, secretKey, corpNum, env, scope) {
   const sts = ['POST', md5val, now, ip, ver, resourceURI].join('\n');
   const sig = hmacSha256Base64(secretKey, sts);
 
-  console.log(`[TOKEN] svcId=${svcId} corpNum=${corpNum} scope=${JSON.stringify(scope)}`);
-  console.log(`[TOKEN] StringToSign=\n${sts}`);
+  console.log(`[TOKEN] 신규 발급 svcId=${svcId} corpNum=${corpNum}`);
 
   const res = await fetch(`https://auth.linkhub.co.kr/${svcId}/Token`, {
     method: 'POST',
@@ -57,6 +67,15 @@ async function getToken(linkId, secretKey, corpNum, env, scope) {
 
   if (!res.ok || !data.session_token)
     throw new Error(`토큰 발급 실패 (${res.status}): ${text.slice(0, 200)}`);
+
+  // 만료시각 파싱 후 캐시 저장
+  // expiration 형식: "2026-03-12T18:41:30.000Z" 또는 "20260312184130"
+  let expiresAt = Date.now() + 55 * 60 * 1000; // 기본 55분
+  if (data.expiration) {
+    const exp = new Date(data.expiration);
+    if (!isNaN(exp.getTime())) expiresAt = exp.getTime();
+  }
+  _tokenCache[cacheKey] = { token: data.session_token, expiresAt };
 
   console.log(`[TOKEN] 발급 성공 만료=${data.expiration}`);
   return data.session_token;
@@ -120,21 +139,23 @@ module.exports = async function handler(req, res) {
     const efbScope = ['member', '180'];
     const taxScope = ['member', '110'];
 
+    // ── listBankAccount ──────────────────────────────────────────────────────
     if (action === 'listBankAccount') {
       const token  = await getToken(linkId, secretKey, corpNum, env, efbScope);
       const result = await callApi(baseUrl, token, 'GET', '/EasyFin/Bank/ListBankAccount', null, null, userId);
       return res.status(result.status).json(result.data);
     }
 
+    // ── requestJob ───────────────────────────────────────────────────────────
     if (action === 'requestJob') {
       const { bankCode, accountNumber, sDate, eDate } = payload;
       const token  = await getToken(linkId, secretKey, corpNum, env, efbScope);
-      // 팝빌 EasyFin requestJob: 파라미터는 QueryString으로 전달
-      const qs = `BankCode=${bankCode}&AccountNumber=${accountNumber}&SDate=${sDate}&EDate=${eDate}`;
+      const qs = `BankCode=${encodeURIComponent(bankCode)}&AccountNumber=${encodeURIComponent(accountNumber)}&SDate=${sDate}&EDate=${eDate}`;
       const result = await callApi(baseUrl, token, 'POST', `/EasyFin/Bank/BankAccount?${qs}`, null, null, userId);
       return res.status(result.status).json(result.data);
     }
 
+    // ── getJobState ──────────────────────────────────────────────────────────
     if (action === 'getJobState') {
       const { jobId } = payload;
       const token  = await getToken(linkId, secretKey, corpNum, env, efbScope);
@@ -142,28 +163,56 @@ module.exports = async function handler(req, res) {
       return res.status(result.status).json(result.data);
     }
 
+    // ── search ───────────────────────────────────────────────────────────────
+    // 팝빌 공식 REST: GET /EasyFin/Bank/{JobID}/Search
+    // TradeType 다중값: 쿼리스트링에 같은 키를 두 번 붙여야 함 (URLSearchParams 불가)
     if (action === 'search') {
       const { jobId, page, perPage } = payload;
+
+      if (!jobId) {
+        console.error('[SEARCH] jobId 없음');
+        return res.status(400).json({ error: 'jobId 필요' });
+      }
+
       console.log(`[SEARCH] corpNum=${corpNum} userId=${userId} jobId=${jobId}`);
-      const token  = await getToken(linkId, secretKey, corpNum, env, efbScope);
-      // TradeType은 배열로 전달 (I=입금, O=출금)
-      const url = `${baseUrl}/EasyFin/Bank/${jobId}/Search?TradeType=I&TradeType=O&SearchString=&Page=${page||1}&PerPage=${perPage||1000}&Order=D`;
-      console.log(`[SEARCH] url=${url}`);
-      const headers = { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' };
+
+      const token = await getToken(linkId, secretKey, corpNum, env, efbScope);
+
+      const pageNum    = page    || 1;
+      const perPageNum = perPage || 1000;
+
+      // TradeType 다중값은 URLSearchParams 쓰면 합쳐지므로 직접 문자열 조합
+      const qs  = `TradeType=I&TradeType=O&SearchString=&Page=${pageNum}&PerPage=${perPageNum}&Order=D`;
+      const url = `${baseUrl}/EasyFin/Bank/${jobId}/Search?${qs}`;
+
+      console.log(`[SEARCH] GET ${url}`);
+
+      const headers = {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type':  'application/json'
+      };
       if (userId) headers['X-PB-UserID'] = userId;
+
       const resp = await fetch(url, { method: 'GET', headers });
       const text = await resp.text();
-      console.log(`[SEARCH] status=${resp.status} body=${text.slice(0,300)}`);
-      let data; try { data = JSON.parse(text); } catch { data = { raw: text }; }
+      console.log(`[SEARCH] status=${resp.status} body=${text.slice(0, 500)}`);
+
+      let data;
+      try { data = JSON.parse(text); }
+      catch { data = { raw: text }; }
+
+      // 팝빌이 404를 내려도 그대로 전달 (원인 진단용)
       return res.status(resp.status).json(data);
     }
 
+    // ── getBankAccountMgtURL ─────────────────────────────────────────────────
     if (action === 'getBankAccountMgtURL') {
       const token  = await getToken(linkId, secretKey, corpNum, env, efbScope);
       const result = await callApi(baseUrl, token, 'GET', '/EasyFin/Bank', { TG: 'BankAccount' }, null, userId);
       return res.status(200).json(result.data);
     }
 
+    // ── issueTaxinvoice ──────────────────────────────────────────────────────
     if (action === 'issueTaxinvoice') {
       const token  = await getToken(linkId, secretKey, corpNum, env, taxScope);
       const result = await callApi(baseUrl, token, 'POST', '/Taxinvoice', null, payload, userId);
