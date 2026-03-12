@@ -4573,6 +4573,11 @@ async function loadPopbillTransfers(){
       var r4=await pbFetch({linkId:lid,secretKey:sk,corpNum,userId,env,action:'search',
         payload:{jobId,page:1,perPage:1000}});
       console.log('[팝빌] search:', r4.status, r4.data);
+      // 실제 응답 구조 상세 출력 (필드명 확인용)
+      console.log('[팝빌] search 응답 전체:', JSON.stringify(r4.data).slice(0,1000));
+      if(r4.data && r4.data.list && r4.data.list.length > 0){
+        console.log('[팝빌] 첫번째 거래내역 필드:', JSON.stringify(r4.data.list[0]));
+      }
       if(!r4.ok){
         console.warn('[팝빌] search 실패 ('+r4.status+'):', JSON.stringify(r4.data).slice(0,200));
         continue;
