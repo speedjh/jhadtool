@@ -163,6 +163,18 @@ module.exports = async function handler(req, res) {
       return res.status(result.status).json(result.data);
     }
 
+    // ── debugUrl: 실제 팝빌 요청 URL + 응답 그대로 반환 (진단용) ─────────────
+    if (action === 'debugUrl') {
+      const { jobId } = payload;
+      const token = await getToken(linkId, secretKey, corpNum, env, efbScope);
+      const url = `${baseUrl}/EasyFin/Bank/${jobId}?TradeType=I,O&Page=1&PerPage=10&Order=D`;
+      const headers = { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' };
+      if (userId) headers['X-PB-UserID'] = userId;
+      const resp = await fetch(url, { method: 'GET', headers });
+      const text = await resp.text();
+      return res.status(200).json({ requestUrl: url, pbStatus: resp.status, pbBody: text.slice(0, 500) });
+    }
+
     // ── search ───────────────────────────────────────────────────────────────
     // 팝빌 공식 REST: GET /EasyFin/Bank/{JobID}   ← /Search 없음! jobId로 끝남
     // 출처: npm popbill SDK EasyFinBankService.js
