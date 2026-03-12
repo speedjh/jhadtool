@@ -4547,14 +4547,18 @@ async function loadPopbillTransfers(){
         await new Promise(function(r){setTimeout(r,2000);});
         var r3=await pbFetch({linkId:lid,secretKey:sk,corpNum,userId,env,action:'getJobState',payload:{jobId}});
         var jState=Number(r3.data.jobState);
-        console.log('[팝빌] jobState:', jState, r3.data.errorReason||'');
-        if(jState>=3){done=true;break;}
+        var jError=Number(r3.data.errorCode||0);
+        console.log('[팝빌] jobState:', jState, 'errorCode:', jError, r3.data.errorReason||'');
+        if(jState>=3){
+          if(jError!==1){ console.warn('[팝빌] 수집 실패 errorCode:',jError, r3.data.errorReason); break; }
+          done=true; break;
+        }
       }
-      if(!done){ console.warn('[팝빌] 수집 타임아웃:', jobId); continue; }
+      if(!done){ console.warn('[팝빌] 수집 실패 또는 타임아웃:', jobId); continue; }
 
       // 4단계: Search
       var r4=await pbFetch({linkId:lid,secretKey:sk,corpNum,userId,env,action:'search',
-        payload:{jobId,tradeType:'I',page:1,perPage:1000}});
+        payload:{jobId,tradeType:'A',page:1,perPage:1000}});
       console.log('[팝빌] search:', r4.status, r4.data);
       var txList=r4.data.list||r4.data.transList||(Array.isArray(r4.data)?r4.data:[]);
       allTx=allTx.concat(txList);
