@@ -4625,24 +4625,32 @@ async function loadPopbillTransfers(){
         await new Promise(function(r){setTimeout(r,1000);});
         var r3=await pbFetch({linkId:lid,secretKey:sk,corpNum,userId,env,action:'getJobState',payload:{jobId}});
         var jState=Number(r3.data.jobState);
-        // errorCode: 1=수집성공, 그 외(2=크레딧부족, 3=오류 등)는 실패
         var jError=Number(r3.data.errorCode||r3.data.ErrorCode||r3.data.error_code||0);
-        var jReason=r3.data.errorReason||r3.data.ErrorReason||'';
+        var jReason=(r3.data.errorReason||r3.data.ErrorReason||'').trim();
         console.log('[팝빌] jobState raw:', JSON.stringify(r3.data));
         if(jState>=3){
-          // errorCode=1 이지만 errorReason에 "크레딧" 포함이면 크레딧 부족으로 skip
-          var isCreditShort = jReason.indexOf('크레딧') !== -1 || jReason.indexOf('credit') !== -1;
-          if(jError===1 && !isCreditShort){
+          // 팝빌 errorCode 의미:
+          // 1 + errorReason="수집 완료" → 성공
+          // 1 + errorReason="크레딧 부족" → 크레딧 소진 (30분 재수집 제한 또는 잔액 부족)
+          // 그 외 errorCode → 기관 오류 등
+          var isCreditShort = jReason.indexOf('크레딧') !== -1;
+          var isSuccess = (jError === 1) && !isCreditShort;
+          if(isSuccess){
             done=true;
+          } else if(isCreditShort){
+            skipReason = '크레딧 부족 (30분 후 재시도 또는 팝빌 크레딧 충전 필요)';
+            console.warn('[팝빌] 수집 실패 → '+skipReason);
           } else {
-            // 크레딧 부족이거나 errorCode 1 이 아닌 경우 수집 실패
-            skipReason = isCreditShort ? '크레딧 부족' : 'errorCode='+jError+' ('+jReason+')';
+            skipReason = 'errorCode='+jError+' ('+jReason+')';
             console.warn('[팝빌] 수집 실패 → '+skipReason);
           }
           break;
         }
       }
       if(!done){
+        if(skipReason.indexOf('크레딧') !== -1){
+          toast('크레딧 부족: 팝빌 크레딧을 충전하거나 30분 후 다시 시도해주세요.', 'warning');
+        }
         console.warn('[팝빌] 수집 실패/타임아웃 jobId='+jobId+(skipReason?' → '+skipReason:''));
         continue;
       }
