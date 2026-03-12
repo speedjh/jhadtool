@@ -4553,12 +4553,14 @@ async function loadPopbillTransfers(){
         var jReason=r3.data.errorReason||r3.data.ErrorReason||'';
         console.log('[팝빌] jobState raw:', JSON.stringify(r3.data));
         if(jState>=3){
-          if(jError===1){
+          // errorCode=1 이지만 errorReason에 "크레딧" 포함이면 크레딧 부족으로 skip
+          var isCreditShort = jReason.indexOf('크레딧') !== -1 || jReason.indexOf('credit') !== -1;
+          if(jError===1 && !isCreditShort){
             done=true;
           } else {
-            // errorCode 1 이 아니면 수집 실패 (크레딧 부족, 기관 오류 등)
-            skipReason='errorCode='+jError+' ('+jReason+')';
-            console.warn('[팝빌] 수집 실패 '+skipReason);
+            // 크레딧 부족이거나 errorCode 1 이 아닌 경우 수집 실패
+            skipReason = isCreditShort ? '크레딧 부족' : 'errorCode='+jError+' ('+jReason+')';
+            console.warn('[팝빌] 수집 실패 → '+skipReason);
           }
           break;
         }
@@ -4601,28 +4603,27 @@ async function loadPopbillTransfers(){
     // remark2~4 : 은행명, 거래유형 등
     var added=0;
 
-    // 이전에 잘못 저장된 팝빌 데이터(amount=0 또는 sender 없음) 먼저 제거
-    var badPbIds = {};
-    state.transfers.forEach(function(t){
-      if(t.source==='popbill' && (t.amount===0 || !t.sender || t.sender==='undefined')){
-        badPbIds[t.pbId] = true;
-      }
-    });
-    if(Object.keys(badPbIds).length > 0){
-      console.log('[팝빌] 잘못된 기존 데이터 정리:', Object.keys(badPbIds).length+'건');
-      var toDelete = state.transfers.filter(function(t){ return t.source==='popbill' && badPbIds[t.pbId]; });
-      toDelete.forEach(function(t){ dbDeleteTransfer(t.id); });
-      state.transfers = state.transfers.filter(function(t){ return !(t.source==='popbill' && badPbIds[t.pbId]); });
+    // 기존 팝빌 데이터 전체 삭제 후 재저장 (필드 매핑 오류로 저장된 잘못된 데이터 제거)
+    var existingPbTransfers = state.transfers.filter(function(t){ return t.source==='popbill'; });
+    if(existingPbTransfers.length > 0){
+      console.log('[팝빌] 기존 팝빌 데이터 전체 삭제 후 재저장:', existingPbTransfers.length+'건');
+      await Promise.all(existingPbTransfers.map(function(t){ return dbDeleteTransfer(t.id); }));
+      state.transfers = state.transfers.filter(function(t){ return t.source!=='popbill'; });
     }
 
-    allTx.forEach(function(tx){
+    // 이번 조회에서 받아온 pbId 중복 방지 (같은 jobId 여러 번 조회된 경우)
+    var seenPbIds = {};
+
+    for(var _i=0; _i<allTx.length; _i++){
+      var tx = allTx[_i];
       var pbId = tx.tid || '';
-      if(!pbId) return;
-      if(state.transfers.some(function(t){ return t.pbId===pbId; })) return;
+      if(!pbId) continue;
+      if(seenPbIds[pbId]) continue;
+      seenPbIds[pbId] = true;
 
       // 입금액/출금액 (문자열→숫자)
-      var accIn  = parseInt(tx.accIn  || 0, 10);
-      var accOut = parseInt(tx.accOut || 0, 10);
+      var accIn  = parseInt(tx.accIn  || '0', 10);
+      var accOut = parseInt(tx.accOut || '0', 10);
       var amount = accIn > 0 ? accIn : -accOut;
 
       // 거래일자: trdate(8자리) → "yyyy-MM-dd"
@@ -4635,13 +4636,22 @@ async function loadPopbillTransfers(){
         ? rawDt.replace(/(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})/, '$1-$2-$3 $4:$5:$6')
         : date;
 
-      // 입금자명: remark1
-      var senderName = tx.remark1 || tx.remark2 || tx.remark3 || tx.memo || '';
+      // 입금자명: remark1~4 중 첫 번째 값
+      var senderName = (tx.remark1||'').trim() || (tx.remark2||'').trim() || (tx.remark3||'').trim() || (tx.remark4||'').trim() || (tx.memo||'').trim() || '(입금자불명)';
 
-      // 은행/계좌: acc(상위 계좌정보)에서 가져옴
+      // 은행/계좌: _acc(상위 계좌정보)에서 가져옴
       var accInfo = tx._acc || {};
       var bankCode      = accInfo.bankCode      || accInfo.BankCode      || '';
       var accountNumber = accInfo.accountNumber || accInfo.AccountNumber || '';
+
+      // 은행코드 → 은행명 변환
+      var bankNameMap = {
+        '0002':'산업','0004':'국민','0007':'수협','0011':'농협','0020':'우리','0023':'SC제일',
+        '0027':'한국씨티','0032':'대구','0034':'광주','0035':'제주','0037':'전북','0039':'경남',
+        '0045':'새마을금고','0048':'신협','0050':'상호저축','0064':'산림조합','0081':'하나',
+        '0088':'신한','0089':'케이뱅크','0090':'카카오뱅크','0092':'토스뱅크','0071':'우체국'
+      };
+      var bankName = bankNameMap[bankCode] || bankCode;
 
       var newT = {
         id: 'pb_'+pbId, pbId: pbId,
@@ -4650,22 +4660,24 @@ async function loadPopbillTransfers(){
         amount: amount,
         sender: senderName,
         description: senderName,
-        bank: bankCode,
+        bank: bankName,
         account: accountNumber,
         accountNumber: accountNumber,
         memo: tx.memo || '',
-        balance: parseInt(tx.balance || 0, 10),
+        balance: parseInt(tx.balance || '0', 10),
         trserial: tx.trserial || '',
         source: 'popbill',
         matched: false
       };
       state.transfers.push(newT);
-      dbSaveTransfer(newT);
+      await dbSaveTransfer(newT);
       added++;
-    });
+    }
 
     renderTransfers();
-    toast('팝빌 입금 내역 '+added+'건 추가 (조회: '+allTx.length+'건)','success');
+    var msg = '팝빌 입금 내역 '+added+'건 저장 완료 (전체 조회: '+allTx.length+'건)';
+    console.log('[팝빌] 완료:', msg);
+    toast(msg, added>0?'success':'info');
 
   } catch(e){
     console.error('[팝빌 오류]',e);
