@@ -4508,10 +4508,20 @@ async function loadPopbillTransfers(){
     }
     toast('계좌 '+accounts.length+'개 확인. 거래내역 수집 중...','info');
 
-    var now=new Date();
-    var eDate=now.getFullYear()+String(now.getMonth()+1).padStart(2,'0')+String(now.getDate()).padStart(2,'0');
-    var s1=new Date(now); s1.setMonth(s1.getMonth()-1);
-    var sDate=s1.getFullYear()+String(s1.getMonth()+1).padStart(2,'0')+'01';
+    // 1개월 단위 날짜 범위 생성 (최근 3개월)
+    function makeMonthRanges(months){
+      var ranges=[];
+      var now=new Date();
+      for(var m=months-1;m>=0;m--){
+        var s=new Date(now.getFullYear(),now.getMonth()-m,1);
+        var e=new Date(now.getFullYear(),now.getMonth()-m+1,0);
+        if(e>now) e=now;
+        var fmt=function(d){return d.getFullYear()+String(d.getMonth()+1).padStart(2,'0')+String(d.getDate()).padStart(2,'0');};
+        ranges.push({sDate:fmt(s),eDate:fmt(e)});
+      }
+      return ranges;
+    }
+    var dateRanges=makeMonthRanges(3);
     var allTx=[];
 
     for(var i=0;i<accounts.length;i++){
@@ -4519,6 +4529,9 @@ async function loadPopbillTransfers(){
       var bCode=(acc.bankCode||acc.BankCode||'');
       var bNum=(acc.accountNumber||acc.AccountNumber||'').replace(/-/g,'');
       if(!bCode||!bNum) continue;
+
+      for(var dr=0;dr<dateRanges.length;dr++){
+        var sDate=dateRanges[dr].sDate, eDate=dateRanges[dr].eDate;
 
       // 2단계: RequestJob
       var r2=await pbFetch({linkId:lid,secretKey:sk,corpNum,userId,env,action:'requestJob',
@@ -4545,7 +4558,8 @@ async function loadPopbillTransfers(){
       console.log('[팝빌] search:', r4.status, r4.data);
       var txList=r4.data.list||r4.data.transList||(Array.isArray(r4.data)?r4.data:[]);
       allTx=allTx.concat(txList);
-    }
+      } // end dateRanges loop
+    } // end accounts loop
 
     // 저장
     var added=0;
