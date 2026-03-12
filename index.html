@@ -3777,7 +3777,7 @@ async function confirmIssue(){
     items:inv.items.map(it=>({date:inv.date,name:it.name,unitPrice:it.unitPrice,quantity:it.quantity,supplyCost:it.supplyCost,tax:it.tax}))
   };
   try{
-    const res=await fetch('/api/bolta-proxy',{
+    const res=await fetch('/.netlify/functions/bolta-proxy',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
       body:JSON.stringify({
@@ -4475,7 +4475,7 @@ async function loadPopbillTransfers(){
   var userId = pb.userId||'';
   var corpNum= pb.corpNum || ((state.settings.sup&&state.settings.sup.bizno)||'').replace(/-/g,'');
   var env    = pb.env||'test';
-  var PROXY  = '/api/popbill-proxy';
+  var PROXY  = '/.netlify/functions/popbill-proxy';
 
   if(!lid||!sk){ toast('팝빌 LinkID와 SecretKey를 설정에서 입력해주세요','error'); return; }
   if(!corpNum){  toast('팝빌 설정에서 사업자번호를 입력해주세요','error'); return; }
@@ -4508,10 +4508,22 @@ async function loadPopbillTransfers(){
     }
     toast('계좌 '+accounts.length+'개 확인. 거래내역 수집 중...','info');
 
-    var now=new Date();
-    var eDate=now.getFullYear()+String(now.getMonth()+1).padStart(2,'0')+String(now.getDate()).padStart(2,'0');
-    var s1=new Date(now); s1.setMonth(s1.getMonth()-1);
-    var sDate=s1.getFullYear()+String(s1.getMonth()+1).padStart(2,'0')+'01';
+    // 날짜 범위를 1개월 단위로 쪼개는 함수 (팝빌 1회 최대 1개월)
+    function makeMonthRanges(monthsBack) {
+      var ranges = [];
+      var now = new Date();
+      for (var m = monthsBack - 1; m >= 0; m--) {
+        var s = new Date(now.getFullYear(), now.getMonth() - m, 1);
+        var e = new Date(now.getFullYear(), now.getMonth() - m + 1, 0); // 말일
+        if (e > now) e = now; // 미래 날짜 방지
+        var fmt = function(d) {
+          return d.getFullYear() + String(d.getMonth()+1).padStart(2,'0') + String(d.getDate()).padStart(2,'0');
+        };
+        ranges.push({ sDate: fmt(s), eDate: fmt(e) });
+      }
+      return ranges;
+    }
+    var dateRanges = makeMonthRanges(3); // 최근 3개월을 1개월씩
     var allTx=[];
 
     for(var i=0;i<accounts.length;i++){
@@ -4520,7 +4532,9 @@ async function loadPopbillTransfers(){
       var bNum=(acc.accountNumber||acc.AccountNumber||'').replace(/-/g,'');
       if(!bCode||!bNum) continue;
 
-      // 2단계: RequestJob
+      // 2단계: RequestJob (월별로 쪼개서 조회)
+      for(var di=0;di<dateRanges.length;di++){
+        var sDate=dateRanges[di].sDate, eDate=dateRanges[di].eDate;
       var r2=await pbFetch({linkId:lid,secretKey:sk,corpNum,userId,env,action:'requestJob',
         payload:{bankCode:bCode,accountNumber:bNum,sDate,eDate}});
       console.log('[팝빌] requestJob:', r2.status, r2.data);
@@ -4545,7 +4559,8 @@ async function loadPopbillTransfers(){
       console.log('[팝빌] search:', r4.status, r4.data);
       var txList=r4.data.list||r4.data.transList||(Array.isArray(r4.data)?r4.data:[]);
       allTx=allTx.concat(txList);
-    }
+      } // end dateRanges loop
+    } // end accounts loop
 
     // 저장
     var added=0;
@@ -4598,7 +4613,7 @@ async function testPopbillConnection(){
   if(!sk){  toast('SecretKey를 입력해주세요','error'); return; }
   toast('팝빌 연결 테스트 중...','info');
   try{
-    var r = await fetch('/api/popbill-proxy',{
+    var r = await fetch('/.netlify/functions/popbill-proxy',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
       body: JSON.stringify({ linkId:lid, secretKey:sk, env:env, method:'GET', path:'/BaseInfo' })
@@ -4625,7 +4640,7 @@ async function openBankAccountMgtURL(){
   if(!cn){       toast('사업자번호를 입력해주세요','error'); return; }
   toast('팝빌 계좌 등록 URL 불러오는 중...','info');
   try{
-    var r = await fetch('/api/popbill-proxy',{
+    var r = await fetch('/.netlify/functions/popbill-proxy',{
       method:'POST', headers:{'Content-Type':'application/json'},
       body: JSON.stringify({ linkId:lid, secretKey:sk, corpNum:cn, userId:uid, env:env, action:'getBankAccountMgtURL' })
     });
@@ -4650,7 +4665,7 @@ async function testApiConnection(){
   toast('연결 테스트 중...','info');
   const env=$('set-env').value;
   try{
-    const r=await fetch('/api/bolta-proxy',{
+    const r=await fetch('/.netlify/functions/bolta-proxy',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
       body:JSON.stringify({apiKey:k,customerKey:ck,env,method:'GET',path:'/v1/taxInvoices'})
