@@ -1160,27 +1160,49 @@
     <!-- Transfers (이체 내역) -->
     <div class="page" id="page-transfers">
       <div class="page-header">
-        <div><div class="page-title">이체 내역</div><div class="page-sub">이체 입금 내역 · 직접 등록</div></div>
+        <div><div class="page-title">이체 내역</div><div class="page-sub">입금 · 출금 내역 · 직접 등록</div></div>
         <div class="flex gap-2" style="align-items:center">
-          <input type="date" id="bb-from-date" style="width:145px">
-          <span style="color:var(--text3)">~</span>
-          <input type="date" id="bb-to-date" style="width:145px">
           <button id="pbLoadTransferBtn" class="btn btn-primary" onclick="loadPopbillTransfers()" style="gap:6px">🏦 팝빌 불러오기</button>
-          <button id="addTransferBtn" class="btn btn-ghost"> 직접 등록</button>
+          <button id="addTransferBtn" class="btn btn-ghost">＋ 직접 등록</button>
         </div>
       </div>
+
+      <!-- 입금 / 출금 탭 -->
+      <div style="display:flex;gap:0;margin-bottom:16px;border-bottom:2px solid var(--border)">
+        <button id="tr-tab-in"  onclick="setTransferTab('in')"
+          style="padding:10px 28px;font-size:15px;font-weight:600;border:none;background:none;cursor:pointer;border-bottom:3px solid var(--blue);color:var(--blue);margin-bottom:-2px">
+          💰 입금 내역
+        </button>
+        <button id="tr-tab-out" onclick="setTransferTab('out')"
+          style="padding:10px 28px;font-size:15px;font-weight:600;border:none;background:none;cursor:pointer;border-bottom:3px solid transparent;color:var(--text3);margin-bottom:-2px">
+          💸 출금 내역
+        </button>
+      </div>
+
       <!-- 요약 카드 -->
-      <div class="stats-grid" style="grid-template-columns:repeat(3,1fr)">
-        <div class="stat-card"><div class="stat-label">이번달 입금 건수</div><div class="stat-value blue" id="tr-stat-count">0</div></div>
+      <div class="stats-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:16px">
+        <div class="stat-card"><div class="stat-label" id="tr-stat-label-count">오늘 입금 건수</div><div class="stat-value blue" id="tr-stat-count">0</div></div>
+        <div class="stat-card"><div class="stat-label" id="tr-stat-label-amount">오늘 합계</div><div class="stat-value blue" id="tr-stat-amount">0원</div></div>
         <div class="stat-card"><div class="stat-label">매칭 완료</div><div class="stat-value green" id="tr-stat-matched">0</div></div>
         <div class="stat-card" style="border-color:rgba(245,166,35,0.3)"><div class="stat-label" style="color:var(--yellow)">미매칭</div><div class="stat-value yellow" id="tr-stat-unmatched">0</div></div>
       </div>
+
       <!-- 필터 -->
       <div class="card" style="margin-bottom:16px;padding:14px 20px">
-        <div class="flex gap-2 items-center">
-          <input type="month" id="tr-filter-month" style="width:150px">
-          <input type="text" id="tr-filter-search" placeholder="입금자명 / 거래처 검색..." style="width:220px">
-          <select id="tr-filter-matched" style="width:130px">
+        <div class="flex gap-2 items-center" style="flex-wrap:wrap">
+          <!-- 날짜 피커 (기본: 오늘) -->
+          <label style="font-size:13px;color:var(--text3);white-space:nowrap">날짜</label>
+          <input type="date" id="tr-filter-date" style="width:145px">
+          <button onclick="trDateStep(-1)" class="btn btn-ghost btn-sm" title="하루 전">◀</button>
+          <button onclick="trDateStep(1)"  class="btn btn-ghost btn-sm" title="하루 후">▶</button>
+          <button onclick="trDateToday()"  class="btn btn-ghost btn-sm">오늘</button>
+          <span style="color:var(--border)">|</span>
+          <!-- 월 전체 보기 -->
+          <input type="month" id="tr-filter-month" style="width:130px" title="월 전체 보기 (날짜 비우면 월 필터 적용)">
+          <span style="color:var(--text3);font-size:12px">월 전체</span>
+          <span style="color:var(--border)">|</span>
+          <input type="text" id="tr-filter-search" placeholder="이름 / 메모 검색..." style="width:180px">
+          <select id="tr-filter-matched" style="width:120px">
             <option value="">전체</option>
             <option value="matched">매칭 완료</option>
             <option value="unmatched">미매칭</option>
@@ -1188,11 +1210,15 @@
           <button id="trFilterResetBtn" class="btn btn-ghost btn-sm">초기화</button>
         </div>
       </div>
+
       <!-- 테이블 -->
       <div class="table-wrap">
-        <table><thead><tr>
-          <th>입금일</th><th>입금자명</th><th>입금 금액</th><th>은행/계좌</th><th>메모</th>
-          <th>매칭 청구건</th><th>등록일시</th><th style="width:130px">액션</th>
+        <table><thead><tr id="tr-thead-row">
+          <th id="tr-th-date">입금일시</th>
+          <th id="tr-th-name">입금자명</th>
+          <th id="tr-th-amount">입금 금액</th>
+          <th>은행/계좌</th><th>메모</th>
+          <th>매칭 청구건</th><th style="width:130px">액션</th>
         </tr></thead>
         <tbody id="transfersTbody"></tbody></table>
       </div>
@@ -2459,7 +2485,10 @@ function initApp(){
   if($('histFilterModeDay'))$('histFilterModeDay').className='btn btn-sm hist-filter-mode-active';
   renderSettingsForm(); // 설정 폼 초기화
   if(!$('itemsTbody').children.length) addItem();
-  var _now=new Date(); if($('tr-filter-month')) $('tr-filter-month').value=_now.getFullYear()+'-'+String(_now.getMonth()+1).padStart(2,'0');
+  var _now=new Date();
+  if($('tr-filter-month')) $('tr-filter-month').value=''; // 월 필터는 기본 비움
+  if($('tr-filter-date')) $('tr-filter-date').value=_now.getFullYear()+'-'+String(_now.getMonth()+1).padStart(2,'0')+'-'+String(_now.getDate()).padStart(2,'0');
+  window._trTab = 'in'; // 기본 탭: 입금
   renderAll(); showPage('dashboard');
   // 설정 메뉴: 어드민만 표시
   var isAdm = state.currentUser && state.currentUser.role === 'admin';
@@ -4202,26 +4231,59 @@ function confirmDetailPayment(){
 // ══════════════════════════════════════════
 function renderTransfers(){
   var now = new Date();
+  var today = now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');
   var thisMonth = now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
-  var mf = $('tr-filter-month') ? $('tr-filter-month').value||'' : thisMonth;
+
+  // 현재 탭 (in=입금, out=출금)
+  var tab = window._trTab || 'in';
+
+  // 날짜 필터 (일별 우선, 없으면 월 필터)
+  var df = $('tr-filter-date')  ? $('tr-filter-date').value||''  : today;
+  var mf = $('tr-filter-month') ? $('tr-filter-month').value||'' : '';
   var sf = ($('tr-filter-search') ? $('tr-filter-search').value||'' : '').toLowerCase();
   var matched = $('tr-filter-matched') ? $('tr-filter-matched').value||'' : '';
 
-  // 이번달 전체 (통계용)
-  var thisMonthAll = state.transfers.filter(function(t){ return (t.date||'').startsWith(thisMonth); });
-  $('tr-stat-count').textContent  = thisMonthAll.length;
-  $('tr-stat-matched').textContent   = state.transfers.filter(function(t){return t.invoiceId;}).length;
-  $('tr-stat-unmatched').textContent = state.transfers.filter(function(t){return !t.invoiceId;}).length;
-
-  // 대시보드 stat 업데이트
-  // stat-transfer-amt 제거됨
-
-  // 필터 적용
+  // 탭에 따라 입금/출금 분리
   var list = [...state.transfers].reverse();
-  if(mf)      list = list.filter(function(t){ return (t.date||'').startsWith(mf); });
-  if(sf)      list = list.filter(function(t){ return (t.sender||'').toLowerCase().includes(sf)||(t.memo||'').toLowerCase().includes(sf); });
+  if(tab === 'in'){
+    list = list.filter(function(t){ return (t.amount||0) >= 0; });
+  } else {
+    list = list.filter(function(t){ return (t.amount||0) < 0; });
+  }
+
+  // 날짜 필터: 날짜 피커 우선, 비어있으면 월 필터
+  if(df){
+    list = list.filter(function(t){ return (t.date||'').startsWith(df); });
+  } else if(mf){
+    list = list.filter(function(t){ return (t.date||'').startsWith(mf); });
+  }
+
+  if(sf) list = list.filter(function(t){ return (t.sender||'').toLowerCase().includes(sf)||(t.memo||'').toLowerCase().includes(sf)||(t.description||'').toLowerCase().includes(sf); });
   if(matched==='matched')   list = list.filter(function(t){ return !!t.invoiceId; });
   if(matched==='unmatched') list = list.filter(function(t){ return !t.invoiceId; });
+
+  // 통계: 현재 필터 기준
+  var filterLabel = df ? df : (mf ? mf : '전체');
+  var allFiltered = (function(){
+    var base = [...state.transfers].filter(function(t){ return tab==='in' ? (t.amount||0)>=0 : (t.amount||0)<0; });
+    if(df) return base.filter(function(t){ return (t.date||'').startsWith(df); });
+    if(mf) return base.filter(function(t){ return (t.date||'').startsWith(mf); });
+    return base;
+  })();
+
+  var totalAmt = allFiltered.reduce(function(s,t){ return s + Math.abs(t.amount||0); }, 0);
+  if($('tr-stat-count')) $('tr-stat-count').textContent = allFiltered.length;
+  if($('tr-stat-amount')) $('tr-stat-amount').textContent = fmt(totalAmt)+'원';
+  if($('tr-stat-label-count')) $('tr-stat-label-count').textContent = filterLabel+' '+(tab==='in'?'입금':'출금')+' 건수';
+  if($('tr-stat-label-amount')) $('tr-stat-label-amount').textContent = filterLabel+' 합계';
+  if($('tr-stat-matched'))   $('tr-stat-matched').textContent   = state.transfers.filter(function(t){return t.invoiceId;}).length;
+  if($('tr-stat-unmatched')) $('tr-stat-unmatched').textContent = state.transfers.filter(function(t){return !t.invoiceId;}).length;
+
+  // 헤더 업데이트
+  var isIn = tab === 'in';
+  if($('tr-th-date'))   $('tr-th-date').textContent   = isIn ? '입금일시' : '출금일시';
+  if($('tr-th-name'))   $('tr-th-name').textContent   = isIn ? '입금자명' : '출금처';
+  if($('tr-th-amount')) $('tr-th-amount').textContent = isIn ? '입금 금액' : '출금 금액';
 
   var tbody = $('transfersTbody'); if(!tbody) return;
   tbody.innerHTML = list.length ? list.map(function(t){
@@ -4229,21 +4291,22 @@ function renderTransfers(){
     var matchCell = inv
       ? '<span class="badge badge-green">'+inv.client.org+'<br><span style="font-size:10px;font-weight:400">'+fmt(inv.taxIssue===false?getSupply(inv):getTotal(inv))+'원</span></span>'
       : '<span style="color:var(--text3)">미매칭</span>';
+    var amtColor = (t.amount||0) >= 0 ? 'var(--green)' : 'var(--red,#e74c3c)';
+    var amtText  = (t.amount||0) >= 0 ? fmt(t.amount)+'원' : '-'+fmt(Math.abs(t.amount))+'원';
     return '<tr>'
-      +'<td style="color:var(--text3)">'+(t.datetime||t.date)+'</td>'
-      +'<td><strong>'+t.sender+'</strong></td>'
-      +'<td class="mono" style="color:var(--green);font-weight:600">'+fmt(t.amount)+'원</td>'
+      +'<td style="color:var(--text3)">'+(t.datetime||t.date||'-')+'</td>'
+      +'<td><strong>'+(t.sender||t.description||'-')+'</strong></td>'
+      +'<td class="mono" style="color:'+amtColor+';font-weight:600">'+amtText+'</td>'
       +'<td style="color:var(--text3)">'+(t.bank||'-')+(t.account?' ****'+String(t.account).slice(-4):'')+'</td>'
       +'<td style="color:var(--text3);font-size:12px">'+(t.memo||'-')+'</td>'
       +'<td>'+matchCell+'</td>'
-      +'<td style="color:var(--text3);font-size:12px">'+(t.createdAt||'-')+'</td>'
       +'<td><div class="flex gap-2">'
         +'<button class="btn btn-ghost btn-sm" data-action="edit-transfer" data-id="'+t.id+'">수정</button>'
         +'<button class="btn btn-danger btn-sm" data-action="del-transfer" data-id="'+t.id+'">삭제</button>'
       +'</div></td>'
       +'</tr>';
   }).join('')
-  : '<tr><td colspan="8" style="text-align:center;color:var(--text3);padding:30px">등록된 이체 내역이 없습니다</td></tr>';
+  : '<tr><td colspan="7" style="text-align:center;color:var(--text3);padding:30px">'+(df?df+' 날짜의 ':mf?mf+' 월의 ':'')+(tab==='in'?'입금':'출금')+' 내역이 없습니다</td></tr>';
 }
 
 function openTransferModal(id){
@@ -4687,6 +4750,42 @@ async function loadPopbillTransfers(){
   }
 }
 
+
+// 입금/출금 탭 전환
+function setTransferTab(tab){
+  window._trTab = tab;
+  var inBtn  = $('tr-tab-in');
+  var outBtn = $('tr-tab-out');
+  if(inBtn && outBtn){
+    if(tab === 'in'){
+      inBtn.style.borderBottomColor  = 'var(--blue)';  inBtn.style.color  = 'var(--blue)';
+      outBtn.style.borderBottomColor = 'transparent';  outBtn.style.color = 'var(--text3)';
+    } else {
+      outBtn.style.borderBottomColor = 'var(--blue)';  outBtn.style.color  = 'var(--blue)';
+      inBtn.style.borderBottomColor  = 'transparent';  inBtn.style.color  = 'var(--text3)';
+    }
+  }
+  renderTransfers();
+}
+
+// 날짜 피커: 하루 이동
+function trDateStep(delta){
+  var el = $('tr-filter-date'); if(!el) return;
+  var d = el.value ? new Date(el.value) : new Date();
+  d.setDate(d.getDate() + delta);
+  el.value = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+  if($('tr-filter-month')) $('tr-filter-month').value = ''; // 월 필터 해제
+  renderTransfers();
+}
+
+// 날짜 피커: 오늘로
+function trDateToday(){
+  var now = new Date();
+  var el = $('tr-filter-date'); if(!el) return;
+  el.value = now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');
+  if($('tr-filter-month')) $('tr-filter-month').value = '';
+  renderTransfers();
+}
 
 function savePopbillSettings(){
   var s = state.settings;
@@ -5663,13 +5762,19 @@ document.addEventListener('DOMContentLoaded', function() {
   $('dpMatchBtn').addEventListener('click', confirmDetailMatch);
   $('addTransferBtn').addEventListener('click', ()=>openTransferModal());
   $('saveTransferBtn').addEventListener('click', saveTransfer);
-  $('tr-filter-month').addEventListener('change', renderTransfers);
+  $('tr-filter-date').addEventListener('change', function(){
+    if($('tr-filter-month')) $('tr-filter-month').value = ''; // 날짜 선택 시 월 필터 해제
+    renderTransfers();
+  });
+  $('tr-filter-month').addEventListener('change', function(){
+    if($('tr-filter-date')) $('tr-filter-date').value = ''; // 월 선택 시 날짜 필터 해제
+    renderTransfers();
+  });
   $('tr-filter-search').addEventListener('input', renderTransfers);
   $('tr-filter-matched').addEventListener('change', renderTransfers);
   $('trFilterResetBtn').addEventListener('click', function(){
-    $('tr-filter-search').value=''; $('tr-filter-matched').value='';
-    var now=new Date(); $('tr-filter-month').value=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
-    renderTransfers();
+    $('tr-filter-search').value=''; $('tr-filter-matched').value=''; $('tr-filter-month').value='';
+    trDateToday();
   });
   $('clientSalesModal').addEventListener('click', function(e){ if(e.target===this) closeClientSales(); });
   $('saveUserBtn').addEventListener('click', saveUser);
