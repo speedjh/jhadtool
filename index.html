@@ -4590,55 +4590,70 @@ async function loadPopbillTransfers(){
     } // end accounts loop
 
     // 저장
-    // 팝빌 실제 응답 필드명 (JSP SDK 확인)
-    // tid      : 거래내역 고유 ID
-    // trdate   : 거래일자 (yyyyMMdd)
-    // trdt     : 거래일시 (yyyyMMddHHmmss)
-    // accIn    : 입금액
-    // accOut   : 출금액
-    // balance  : 잔액
-    // remark1~4: 비고 (입금자명 등)
-    // memo     : 거래내역 메모
+    // 팝빌 실제 응답 필드명 (실제 응답 확인 완료)
+    // tid       : 거래내역 고유 ID
+    // trdate    : 거래일자 (yyyyMMdd)
+    // trdt      : 거래일시 (yyyyMMddHHmmss)
+    // accIn     : 입금액 (문자열)
+    // accOut    : 출금액 (문자열)
+    // balance   : 잔액 (문자열)
+    // remark1   : 입금자명
+    // remark2~4 : 은행명, 거래유형 등
     var added=0;
-    allTx.forEach(function(tx){
-      var pbId = tx.tid || tx.tID || '';
-      if(!pbId) return;
-      if(state.transfers.some(function(t){return t.pbId===pbId;})) return;
 
-      // 입금액 우선, 없으면 출금액 (음수)
+    // 이전에 잘못 저장된 팝빌 데이터(amount=0 또는 sender 없음) 먼저 제거
+    var badPbIds = {};
+    state.transfers.forEach(function(t){
+      if(t.source==='popbill' && (t.amount===0 || !t.sender || t.sender==='undefined')){
+        badPbIds[t.pbId] = true;
+      }
+    });
+    if(Object.keys(badPbIds).length > 0){
+      console.log('[팝빌] 잘못된 기존 데이터 정리:', Object.keys(badPbIds).length+'건');
+      var toDelete = state.transfers.filter(function(t){ return t.source==='popbill' && badPbIds[t.pbId]; });
+      toDelete.forEach(function(t){ dbDeleteTransfer(t.id); });
+      state.transfers = state.transfers.filter(function(t){ return !(t.source==='popbill' && badPbIds[t.pbId]); });
+    }
+
+    allTx.forEach(function(tx){
+      var pbId = tx.tid || '';
+      if(!pbId) return;
+      if(state.transfers.some(function(t){ return t.pbId===pbId; })) return;
+
+      // 입금액/출금액 (문자열→숫자)
       var accIn  = parseInt(tx.accIn  || 0, 10);
       var accOut = parseInt(tx.accOut || 0, 10);
       var amount = accIn > 0 ? accIn : -accOut;
 
-      // 거래일자: trdate(8자리) 우선, trdt(14자리) 앞 8자리 fallback
+      // 거래일자: trdate(8자리) → "yyyy-MM-dd"
       var rawDate = tx.trdate || (tx.trdt||'').slice(0,8) || '';
       var date = rawDate.replace(/(\d{4})(\d{2})(\d{2})/, '$1-$2-$3');
 
-      // 거래일시: trdt 14자리 → "yyyy-MM-dd HH:mm:ss"
+      // 거래일시: trdt(14자리) → "yyyy-MM-dd HH:mm:ss"
       var rawDt = tx.trdt || '';
       var datetime = rawDt.length >= 14
         ? rawDt.replace(/(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})/, '$1-$2-$3 $4:$5:$6')
         : date;
 
-      // 입금자명: remark1 우선
-      var description = tx.remark1 || tx.remark2 || tx.remark3 || tx.remark4 || tx.memo || '';
+      // 입금자명: remark1
+      var senderName = tx.remark1 || tx.remark2 || tx.remark3 || tx.memo || '';
 
-      // 은행코드/계좌번호: 응답에 없으므로 acc(상위 계좌정보)에서 가져옴
-      var acc = tx._acc || {};
-      var bankCode      = acc.bankCode      || acc.BankCode      || '';
-      var accountNumber = acc.accountNumber || acc.AccountNumber || '';
+      // 은행/계좌: acc(상위 계좌정보)에서 가져옴
+      var accInfo = tx._acc || {};
+      var bankCode      = accInfo.bankCode      || accInfo.BankCode      || '';
+      var accountNumber = accInfo.accountNumber || accInfo.AccountNumber || '';
 
       var newT = {
         id: 'pb_'+pbId, pbId: pbId,
         date: date,
         datetime: datetime,
         amount: amount,
-        sender: description,        // remark1 → 입금자명 (renderTransfers에서 t.sender 사용)
-        description: description,
-        bank: bankCode,             // 은행코드 (renderTransfers에서 t.bank 사용)
-        account: accountNumber,     // 계좌번호 (renderTransfers에서 t.account 사용)
+        sender: senderName,
+        description: senderName,
+        bank: bankCode,
+        account: accountNumber,
         accountNumber: accountNumber,
-        memo: tx.memo || '',        // 거래내역 메모
+        memo: tx.memo || '',
         balance: parseInt(tx.balance || 0, 10),
         trserial: tx.trserial || '',
         source: 'popbill',
