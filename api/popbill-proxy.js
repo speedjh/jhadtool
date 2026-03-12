@@ -16,7 +16,8 @@ function hmacSha256Base64(secretKey, str) {
 
 function contentMd5(body) {
   if (!body) return '';
-  return crypto.createHash('md5').update(body, 'utf8').digest('base64');
+  // 팝빌 공식문서: openssl dgst -sha256 (MD5가 아닌 SHA-256)
+  return crypto.createHash('sha256').update(body, 'utf8').digest('base64');
 }
 
 async function getToken(linkId, secretKey, corpNum, env, scope) {
