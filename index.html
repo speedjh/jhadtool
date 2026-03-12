@@ -4536,8 +4536,8 @@ async function loadPopbillTransfers(){
       // 2단계: RequestJob
       var r2=await pbFetch({linkId:lid,secretKey:sk,corpNum,userId,env,action:'requestJob',
         payload:{bankCode:bCode,accountNumber:bNum,sDate,eDate}});
-      console.log('[팝빌] requestJob:', r2.status, r2.data);
-      if(!r2.ok){ console.warn('[팝빌] RequestJob 실패:', r2.data); continue; }
+      console.log('[팝빌] requestJob:', r2.status, JSON.stringify(r2.data));
+      if(!r2.ok){ console.warn('[팝빌] RequestJob 실패 상세:', JSON.stringify(r2.data)); continue; }
       var jobId=r2.data.jobID||r2.data.jobId||'';
       if(!jobId){ console.warn('[팝빌] jobID 없음:', r2.data); continue; }
 
