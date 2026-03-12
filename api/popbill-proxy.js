@@ -143,12 +143,19 @@ module.exports = async function handler(req, res) {
     }
 
     if (action === 'search') {
-      const { jobId, tradeType, page, perPage } = payload;
+      const { jobId, page, perPage } = payload;
+      console.log(`[SEARCH] corpNum=${corpNum} userId=${userId} jobId=${jobId}`);
       const token  = await getToken(linkId, secretKey, corpNum, env, efbScope);
-      const qs = { TradeType: tradeType || 'A', Page: page || 1, PerPage: perPage || 1000, OrderDirection: 'D' };
-      console.log(`[SEARCH] jobId=${jobId} qs=${JSON.stringify(qs)}`);
-      const result = await callApi(baseUrl, token, 'GET', `/EasyFin/Bank/${jobId}/Search`, qs, null, userId);
-      return res.status(result.status).json(result.data);
+      // TradeType은 배열로 전달 (I=입금, O=출금)
+      const url = `${baseUrl}/EasyFin/Bank/${jobId}/Search?TradeType=I&TradeType=O&SearchString=&Page=${page||1}&PerPage=${perPage||1000}&Order=D`;
+      console.log(`[SEARCH] url=${url}`);
+      const headers = { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' };
+      if (userId) headers['X-PB-UserID'] = userId;
+      const resp = await fetch(url, { method: 'GET', headers });
+      const text = await resp.text();
+      console.log(`[SEARCH] status=${resp.status} body=${text.slice(0,300)}`);
+      let data; try { data = JSON.parse(text); } catch { data = { raw: text }; }
+      return res.status(resp.status).json(data);
     }
 
     if (action === 'getBankAccountMgtURL') {
