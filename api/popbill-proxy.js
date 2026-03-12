@@ -129,9 +129,9 @@ module.exports = async function handler(req, res) {
     if (action === 'requestJob') {
       const { bankCode, accountNumber, sDate, eDate } = payload;
       const token  = await getToken(linkId, secretKey, corpNum, env, efbScope);
-      const result = await callApi(baseUrl, token, 'POST', '/EasyFin/Bank/BankAccount',
-        { BankCode: bankCode, AccountNumber: accountNumber, SDate: sDate, EDate: eDate },
-        null, userId);
+      // 팝빌 EasyFin requestJob: 파라미터는 QueryString으로 전달
+      const qs = `BankCode=${bankCode}&AccountNumber=${accountNumber}&SDate=${sDate}&EDate=${eDate}`;
+      const result = await callApi(baseUrl, token, 'POST', `/EasyFin/Bank/BankAccount?${qs}`, null, null, userId);
       return res.status(result.status).json(result.data);
     }
 
