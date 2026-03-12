@@ -145,7 +145,8 @@ module.exports = async function handler(req, res) {
     if (action === 'search') {
       const { jobId, tradeType, page, perPage } = payload;
       const token  = await getToken(linkId, secretKey, corpNum, env, efbScope);
-      const qs = { TradeType: tradeType || 'I', Page: page || 1, PerPage: perPage || 1000 };
+      const qs = { TradeType: tradeType || 'A', Page: page || 1, PerPage: perPage || 1000, OrderDirection: 'D' };
+      console.log(`[SEARCH] jobId=${jobId} qs=${JSON.stringify(qs)}`);
       const result = await callApi(baseUrl, token, 'GET', `/EasyFin/Bank/${jobId}/Search`, qs, null, userId);
       return res.status(result.status).json(result.data);
     }
