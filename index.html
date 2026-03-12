@@ -4547,8 +4547,8 @@ async function loadPopbillTransfers(){
         await new Promise(function(r){setTimeout(r,1000);});
         var r3=await pbFetch({linkId:lid,secretKey:sk,corpNum,userId,env,action:'getJobState',payload:{jobId}});
         var jState=Number(r3.data.jobState);
-        var jError=Number(r3.data.errorCode||0);
-        console.log('[팝빌] jobState:', jState, 'errorCode:', jError, r3.data.errorReason||'');
+        var jError=Number(r3.data.errorCode||r3.data.ErrorCode||r3.data.error_code||0);
+        console.log('[팝빌] jobState raw:', JSON.stringify(r3.data));
         if(jState>=3){
           if(jError!==1){ console.warn('[팝빌] 수집 실패 errorCode:',jError, r3.data.errorReason); break; }
           done=true; break;
