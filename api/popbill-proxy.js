@@ -164,8 +164,9 @@ module.exports = async function handler(req, res) {
     }
 
     // ── search ───────────────────────────────────────────────────────────────
-    // 팝빌 공식 REST: GET /EasyFin/Bank/{JobID}/Search
-    // TradeType 다중값: 쿼리스트링에 같은 키를 두 번 붙여야 함 (URLSearchParams 불가)
+    // 팝빌 공식 REST: GET /EasyFin/Bank/{JobID}   ← /Search 없음! jobId로 끝남
+    // 출처: npm popbill SDK EasyFinBankService.js
+    //   targetURI = '/EasyFin/Bank/' + JobID + '?TradeType=' + ...
     if (action === 'search') {
       const { jobId, page, perPage } = payload;
 
@@ -181,9 +182,9 @@ module.exports = async function handler(req, res) {
       const pageNum    = page    || 1;
       const perPageNum = perPage || 1000;
 
-      // TradeType 다중값은 URLSearchParams 쓰면 합쳐지므로 직접 문자열 조합
-      const qs  = `TradeType=I&TradeType=O&SearchString=&Page=${pageNum}&PerPage=${perPageNum}&Order=D`;
-      const url = `${baseUrl}/EasyFin/Bank/${jobId}/Search?${qs}`;
+      // TradeType: I,O 를 콤마 구분으로 전달 (SDK 방식: TradeType=I,O)
+      const qs  = `TradeType=I,O&Page=${pageNum}&PerPage=${perPageNum}&Order=D`;
+      const url = `${baseUrl}/EasyFin/Bank/${jobId}?${qs}`;
 
       console.log(`[SEARCH] GET ${url}`);
 
