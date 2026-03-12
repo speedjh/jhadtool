@@ -4107,10 +4107,13 @@ function renderDetailTransfers(invId, targetAmt){
   detailSelectedTransferIds = new Set();
   $('dpMatchActions').style.display='none';
 
-  var transfers = [...state.transfers].sort(function(a,b){ return (b.date||'').localeCompare(a.date||''); });
+  // 입금 내역만 매칭 대상 (출금은 제외)
+  var transfers = [...state.transfers]
+    .filter(function(t){ return (t.amount||0) >= 0; })
+    .sort(function(a,b){ return (b.date||'').localeCompare(a.date||''); });
 
   if(!transfers.length){
-    $('dpTransferList').innerHTML='<div style="color:var(--text3);font-size:13px;text-align:center;padding:30px 0">등록된 이체 내역이 없습니다.<br><br><button class="btn btn-ghost btn-sm" data-action="go-transfers">이체 내역 탭으로 이동</button></div>';
+    $('dpTransferList').innerHTML='<div style="color:var(--text3);font-size:13px;text-align:center;padding:30px 0">등록된 입금 내역이 없습니다.<br><br><button class="btn btn-ghost btn-sm" data-action="go-transfers">이체 내역 탭으로 이동</button></div>';
     return;
   }
 
