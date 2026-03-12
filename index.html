@@ -4541,10 +4541,10 @@ async function loadPopbillTransfers(){
       var jobId=r2.data.jobID||r2.data.jobId||'';
       if(!jobId){ console.warn('[팝빌] jobID 없음:', r2.data); continue; }
 
-      // 3단계: JobState 폴링
+      // 3단계: JobState 폴링 (Vercel Hobby 10초 제한 고려)
       var done=false;
-      for(var t=0;t<15;t++){
-        await new Promise(function(r){setTimeout(r,2000);});
+      for(var t=0;t<8;t++){
+        await new Promise(function(r){setTimeout(r,1000);});
         var r3=await pbFetch({linkId:lid,secretKey:sk,corpNum,userId,env,action:'getJobState',payload:{jobId}});
         var jState=Number(r3.data.jobState);
         var jError=Number(r3.data.errorCode||0);
@@ -4557,6 +4557,7 @@ async function loadPopbillTransfers(){
       if(!done){ console.warn('[팝빌] 수집 실패 또는 타임아웃:', jobId); continue; }
 
       // 4단계: Search
+      console.log('[팝빌] search 요청 시작 jobId='+jobId+' PROXY='+PROXY);
       var r4=await pbFetch({linkId:lid,secretKey:sk,corpNum,userId,env,action:'search',
         payload:{jobId,tradeType:'A',page:1,perPage:1000}});
       console.log('[팝빌] search:', r4.status, r4.data);
