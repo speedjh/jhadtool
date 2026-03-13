@@ -3822,24 +3822,34 @@ async function confirmIssue(){
     },
     items:inv.items.map(it=>({date:inv.date,name:it.name,unitPrice:it.unitPrice,quantity:it.quantity,supplyCost:it.supplyCost,tax:it.tax}))
   };
+  // 발행 전 설정값 디버그 출력
+  var _dbgApiKey = state.settings.apiKey||'';
+  var _dbgCK = state.settings.customerKey||'';
+  var _dbgEnv = state.settings.env||'test';
+  console.log('[볼타 발행] apiKey 앞8자:', _dbgApiKey.substring(0,8)||'(없음)', '| customerKey 앞8자:', _dbgCK.substring(0,8)||'(없음)', '| env:', _dbgEnv);
+  if(!_dbgCK){
+    ae.innerHTML='<div class="alert alert-error">❌ Customer Key가 설정되지 않았습니다. 설정 탭에서 Customer Key를 입력해주세요.</div>';
+    btn.disabled=false; btn.textContent=' 세금계산서 발행'; return;
+  }
   try{
     const res=await fetch('/api/bolta-proxy',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
       body:JSON.stringify({
-        apiKey:state.settings.apiKey,
-        customerKey:state.settings.customerKey,
-        env:state.settings.env||'test',
+        apiKey:_dbgApiKey,
+        customerKey:_dbgCK,
+        env:_dbgEnv,
         method:'POST',
         path:'/v1/taxInvoices/issue',
         payload
       })
     });
     const data=await res.json();
+    console.log('[볼타 발행 응답]', res.status, JSON.stringify(data).substring(0,300));
     // Bolta 에러 응답 구조: { body: { message, code }, type: 'ERROR' } 또는 직접 { message, code }
     const errMsg = (data.body && data.body.message) || data.message || data.error || null;
-    const isErr  = !res.ok || data.type === 'ERROR' || (data.body && data.body.code);
-    if(res.ok && !isErr){
+    const isErr  = !res.ok || data.type === 'ERROR';
+    if(!isErr){
       inv.issuedAt=new Date().toISOString().replace('T',' ').substring(0,16);
       inv.txId=data.id||data.taxInvoiceId||'OK';
       if(inv.preIssue){
@@ -3863,7 +3873,12 @@ async function confirmIssue(){
       // Bolta 에러 상세 메시지 추출
       var failMsg = errMsg || JSON.stringify(data);
       var failCode = (data.body && data.body.code) || '';
-      ae.innerHTML=`<div class="alert alert-error">❌ 발행 실패: ${failMsg}${failCode?' ('+failCode+':볼타 설정 확인 필요)':''}</div>`;
+      // NOT_FOUND = customerKey 또는 API Key 문제
+      var hint = '';
+      if(failCode === 'NOT_FOUND' || (failMsg && failMsg.includes('No handler'))) {
+        hint = '<br><small style="color:var(--text3)">→ 설정탭의 <b>API Key</b>와 <b>Customer Key</b>가 올바른지, 환경(테스트/라이브)이 맞는지 확인하세요.</small>';
+      }
+      ae.innerHTML=`<div class="alert alert-error">❌ 발행 실패: ${failMsg}${hint}</div>`;
       btn.disabled=false; btn.textContent=' 세금계산서 발행';
     }
   }catch(e){
