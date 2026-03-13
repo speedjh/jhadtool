@@ -37,7 +37,7 @@ module.exports = async function handler(req, res) {
         'Content-Type':  'application/json'
       }
     };
-    if (payload && method === 'POST') {
+    if (payload && (method === 'POST' || method === 'PUT' || method === 'PATCH')) {
       fetchOpts.body = JSON.stringify(payload);
     }
 
@@ -48,7 +48,12 @@ module.exports = async function handler(req, res) {
     try { data = JSON.parse(text); }
     catch { data = { raw: text }; }
 
-    return res.status(r.status).json(data);
+    // Bolta 에러 응답 형식: { body: { message, code }, type: 'ERROR', timestamp }
+    // 이 경우 HTTP 상태가 200이어도 실제 에러이므로 클라이언트에 명확하게 전달
+    const boltaErr = data && data.type === 'ERROR' && data.body;
+    const statusCode = boltaErr ? (r.status !== 200 ? r.status : 400) : r.status;
+
+    return res.status(statusCode).json(data);
 
   } catch (e) {
     return res.status(500).json({ error: e.message });
