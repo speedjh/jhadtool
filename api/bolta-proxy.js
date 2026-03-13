@@ -33,15 +33,22 @@ module.exports = async function handler(req, res) {
     // Basic base64("apiKey:")
     const authToken = Buffer.from(apiKey + ':').toString('base64');
 
+    // Customer-Key: 문서 형식은 "customer_xxxxxx"
+    // 입력값이 "CustomerKey_xxx" 형식이면 "CustomerKey_" → "customer_" 로 변환
+    const normalizedCK = customerKey.startsWith('CustomerKey_')
+      ? 'customer_' + customerKey.slice('CustomerKey_'.length)
+      : customerKey;
+
     console.log('[bolta-proxy] →', method, url);
-    console.log('[bolta-proxy] customerKey앞8:', customerKey.substring(0, 8));
+    console.log('[bolta-proxy] customerKey 원본앞12:', customerKey.substring(0, 12));
+    console.log('[bolta-proxy] customerKey 변환후앞12:', normalizedCK.substring(0, 12));
     console.log('[bolta-proxy] apiKey앞8:', apiKey.substring(0, 8));
 
     const fetchOpts = {
       method: method || 'GET',
       headers: {
         'Authorization': 'Basic ' + authToken,
-        'Customer-Key':  customerKey,
+        'Customer-Key':  normalizedCK,
         'Content-Type':  'application/json',
         'Accept':        'application/json'
       }
