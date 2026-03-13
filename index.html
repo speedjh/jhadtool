@@ -2499,8 +2499,9 @@ function initApp(){
   renderSettingsForm(); // 설정 폼 초기화
   if(!$('itemsTbody').children.length) addItem();
   var _now=new Date();
-  if($('tr-filter-month')) $('tr-filter-month').value=''; // 월 필터는 기본 비움
-  if($('tr-filter-date')) $('tr-filter-date').value=_now.getFullYear()+'-'+String(_now.getMonth()+1).padStart(2,'0')+'-'+String(_now.getDate()).padStart(2,'0');
+  if($('tr-filter-month')) $('tr-filter-month').value='';
+  if($('tr-filter-date')) $('tr-filter-date').value=''; // 기본값 비움 → 전체 날짜 표시
+  window._trTab = 'in'; // 기본 탭: 입금
   window._trTab = 'in'; // 기본 탭: 입금
   renderAll(); showPage('dashboard');
   // 설정 메뉴: 어드민만 표시
@@ -2616,8 +2617,10 @@ function renderDashboard(){
     ow.style.display='';
     $('dashOverdueTbody').innerHTML=or.slice(0,5).map(r=>`<tr><td><strong>${r.clientName}</strong></td><td class="mono">${fmt(r.amount)}원</td><td class="mono" style="color:var(--red);font-weight:600">${fmt(getRemain(r))}원</td><td style="color:var(--text3)">${r.date}</td><td><span class="badge badge-red">${getOverdueDays(r)}일</span></td></tr>`).join('');
   }
-  // 최근 이체내역 (최근 5건)
-  var recentTransfers=[...state.transfers].sort(function(a,b){return (b.date||'').localeCompare(a.date||'');}).slice(0,5);
+  // 최근 이체내역 (입금만, 최근 5건)
+  var recentTransfers=[...state.transfers]
+    .filter(function(t){ return (t.amount||0) >= 0; })
+    .sort(function(a,b){return (b.date||'').localeCompare(a.date||'');}).slice(0,5);
   $('dashTransferTbody').innerHTML=recentTransfers.length
     ?recentTransfers.map(function(t){
         var matchedInv=t.invoiceId?state.invoices.find(function(i){return i.id===t.invoiceId;}):null;
@@ -4691,23 +4694,19 @@ async function loadPopbillTransfers(){
     // remark2~4 : 은행명, 거래유형 등
     var added=0;
 
-    // 기존 팝빌 데이터 전체 삭제 후 재저장 (필드 매핑 오류로 저장된 잘못된 데이터 제거)
-    var existingPbTransfers = state.transfers.filter(function(t){ return t.source==='popbill'; });
-    if(existingPbTransfers.length > 0){
-      console.log('[팝빌] 기존 팝빌 데이터 전체 삭제 후 재저장:', existingPbTransfers.length+'건');
-      await Promise.all(existingPbTransfers.map(function(t){ return dbDeleteTransfer(t.id); }));
-      state.transfers = state.transfers.filter(function(t){ return t.source!=='popbill'; });
-    }
-
-    // 이번 조회에서 받아온 pbId 중복 방지 (같은 jobId 여러 번 조회된 경우)
+    // 기존 데이터는 절대 삭제하지 않음 — pbId 기준으로 중복만 체크해서 신규 건만 추가
+    // (이미 저장된 내역은 매칭 정보 포함 모두 보존)
     var seenPbIds = {};
 
     for(var _i=0; _i<allTx.length; _i++){
       var tx = allTx[_i];
       var pbId = tx.tid || '';
       if(!pbId) continue;
+      // 이미 이번 루프에서 처리한 것 skip
       if(seenPbIds[pbId]) continue;
       seenPbIds[pbId] = true;
+      // DB에 이미 저장된 내역이면 skip (보존)
+      if(state.transfers.some(function(t){ return t.pbId === pbId; })) continue;
 
       // 입금액/출금액 (문자열→숫자)
       var accIn  = parseInt(tx.accIn  || '0', 10);
