@@ -3826,7 +3826,7 @@ async function confirmIssue(){
   var _dbgApiKey = state.settings.apiKey||'';
   var _dbgCK = state.settings.customerKey||'';
   var _dbgEnv = state.settings.env||'test';
-  console.log('[볼타 발행] apiKey 앞8자:', _dbgApiKey.substring(0,8)||'(없음)', '| customerKey 앞8자:', _dbgCK.substring(0,8)||'(없음)', '| env:', _dbgEnv);
+  console.log('[볼타 발행] apiKey:', _dbgApiKey||'(없음)', '| customerKey 전체:', _dbgCK||'(없음)', '| env:', _dbgEnv);
   if(!_dbgCK){
     ae.innerHTML='<div class="alert alert-error">❌ Customer Key가 설정되지 않았습니다. 설정 탭에서 Customer Key를 입력해주세요.</div>';
     btn.disabled=false; btn.textContent=' 세금계산서 발행'; return;
