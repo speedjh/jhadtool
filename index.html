@@ -1191,6 +1191,7 @@
         <div class="flex gap-2 items-center" style="flex-wrap:wrap">
           <!-- 날짜 피커 -->
           <input type="date" id="tr-filter-date" style="width:145px">
+          <button onclick="trClearDate()" class="btn btn-ghost btn-sm" title="날짜 필터 해제 - 전체 보기">전체</button>
           <!-- 월 선택 -->
           <input type="month" id="tr-filter-month" style="width:130px;padding:7px 10px;border:1px solid var(--border);border-radius:8px;font-size:13px;background:var(--surface2);color:var(--text);cursor:pointer" title="월 전체 보기">
           <span style="color:var(--border)">|</span>
@@ -2499,9 +2500,9 @@ function initApp(){
   renderSettingsForm(); // 설정 폼 초기화
   if(!$('itemsTbody').children.length) addItem();
   var _now=new Date();
+  var _todayStr = _now.getFullYear()+'-'+String(_now.getMonth()+1).padStart(2,'0')+'-'+String(_now.getDate()).padStart(2,'0');
   if($('tr-filter-month')) $('tr-filter-month').value='';
-  if($('tr-filter-date')) $('tr-filter-date').value=''; // 기본값 비움 → 전체 날짜 표시
-  window._trTab = 'in'; // 기본 탭: 입금
+  if($('tr-filter-date')) $('tr-filter-date').value=_todayStr; // 기본값: 오늘 (불러오기 기준일)
   window._trTab = 'in'; // 기본 탭: 입금
   renderAll(); showPage('dashboard');
   // 설정 메뉴: 어드민만 표시
@@ -4813,6 +4814,13 @@ function trDateToday(){
   renderTransfers();
 }
 
+// 날짜 필터 해제 → 전체 보기
+function trClearDate(){
+  if($('tr-filter-date'))  $('tr-filter-date').value  = '';
+  if($('tr-filter-month')) $('tr-filter-month').value = '';
+  renderTransfers();
+}
+
 // 관리자 전용: 특정 월 이체 내역 일괄 삭제
 async function adminDeleteTransfers(){
   var isAdmin = state.currentUser && state.currentUser.role === 'admin';
@@ -5680,6 +5688,10 @@ window.loadPopbillTransfers  = loadPopbillTransfers;
 window.savePopbillSettings     = savePopbillSettings;
 window.testPopbillConnection   = testPopbillConnection;
 window.adminDeleteTransfers    = adminDeleteTransfers;
+window.setTransferTab          = setTransferTab;
+window.trDateToday             = trDateToday;
+window.trDateStep              = trDateStep;
+window.trClearDate             = trClearDate;
 window.openBankAccountMgtURL   = openBankAccountMgtURL;
 window.deleteQuote        = deleteQuote;
 window.printQuotePDF      = printQuotePDF;
