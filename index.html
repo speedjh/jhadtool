@@ -2869,7 +2869,16 @@ async function openInvoicePreview(id) {
       var d = await r.json();
       if(r.ok && d && !d.code) {
         boltaData = d;
-        console.log('[볼타 조회]', d);
+        console.log('[볼타 조회 전체응답]', JSON.stringify(d));
+        // 국세청 승인번호 받아오면 로컬에도 저장
+        var fetchedNts = d.ntsConfirmNum || d.confirmNum || d.ntcNum || null;
+        if(fetchedNts && fetchedNts !== inv.ntsConfirmNum) {
+          inv.ntsConfirmNum = fetchedNts;
+          inv.boltaStatus   = d.status || inv.boltaStatus;
+          saveState();
+          dbSaveInvoice(inv);
+          console.log('[볼타 조회] 국세청 승인번호 저장:', fetchedNts);
+        }
       } else {
         console.warn('[볼타 조회 실패]', d);
       }
@@ -2938,9 +2947,24 @@ async function openInvoicePreview(id) {
   var cliBizT  = (renderClient && renderClient.businessType) || clientInfo.bizType || '';
   var cliBizI  = (renderClient && renderClient.businessItem) || clientInfo.bizItem || '';
 
+  // 국세청 승인번호 박스 (이미지 저장 시 잘 보이도록 강조)
+  var ntsBox = ntsNum
+    ? '<div style="background:#f0fdf4;border:1.5px solid #86efac;border-radius:6px;padding:10px 16px;margin-bottom:20px;display:flex;align-items:center;gap:10px">'
+      + '<span style="font-size:11px;font-weight:700;color:#166534;white-space:nowrap">국세청 승인번호</span>'
+      + '<span style="font-size:13px;font-weight:700;color:#111;letter-spacing:.05em;font-family:monospace">' + ntsNum + '</span>'
+      + boltaStatusBadge
+      + '</div>'
+    : (issuanceKey
+      ? '<div style="background:#f8f8fa;border:1px solid #ddd;border-radius:6px;padding:8px 16px;margin-bottom:20px;display:flex;align-items:center;gap:10px">'
+        + '<span style="font-size:11px;color:#888;white-space:nowrap">볼타 발행키</span>'
+        + '<span style="font-size:11px;color:#555;font-family:monospace">' + issuanceKey + '</span>'
+        + boltaStatusBadge
+        + '</div>'
+      : '');
+
   $('invoicePreviewContent').innerHTML = '<div id="invoicePrintArea" style="background:#fff;padding:36px 40px;border-radius:8px;font-family:Pretendard,sans-serif;color:#111;min-width:660px">'
 
-    + '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:28px;padding-bottom:20px;border-bottom:2px solid #111">'
+    + '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;padding-bottom:18px;border-bottom:2px solid #111">'
     +   '<div>'
     +     '<div style="font-size:11px;font-weight:600;letter-spacing:.12em;color:#666;text-transform:uppercase;margin-bottom:6px">' + typeLabel + '</div>'
     +     '<div style="font-size:26px;font-weight:800;letter-spacing:-.02em">' + supOrg + '</div>'
@@ -2948,9 +2972,10 @@ async function openInvoicePreview(id) {
     +   '<div style="text-align:right">'
     +     '<div style="font-size:11px;color:#888;margin-bottom:3px">발행일</div>'
     +     '<div style="font-size:15px;font-weight:600">' + String(renderDate).substring(0,10) + '</div>'
-    +     txIdRow
     +   '</div>'
     + '</div>'
+
+    + ntsBox
 
     + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px">'
     +   '<div style="background:#f8f8fa;border-radius:8px;padding:16px">'
