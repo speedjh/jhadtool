@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- v20260313-safety-r4 -->
+<!-- v20260313-safety-r5 -->
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
@@ -2809,13 +2809,23 @@ function renderHistory(){
     var taxCell=isNoTax?'-':fmt(getTax(inv))+'원';
     var taxColor=isNoTax?'var(--text3)':'inherit';
 
+    // 볼타 발행 상태 배지 (행에 표시 - 행 클릭 시 조회 후 저장된 값)
+    var boltaRowBadge = '';
+    if(!isNoTax && !isSettle2 && inv.boltaStatus) {
+      var bsMap = {
+        'ISSUED':    '<span style="font-size:10px;background:#d1fae5;color:#065f46;padding:2px 7px;border-radius:10px;font-weight:600;margin-left:4px">✅ 발행완료</span>',
+        'PENDING':   '<span style="font-size:10px;background:#fef9c3;color:#854d0e;padding:2px 7px;border-radius:10px;font-weight:600;margin-left:4px">⏳ 전송중</span>',
+        'CANCELLED': '<span style="font-size:10px;background:#fee2e2;color:#991b1b;padding:2px 7px;border-radius:10px;font-weight:600;margin-left:4px">❌ 취소됨</span>'
+      };
+      boltaRowBadge = bsMap[inv.boltaStatus] || '<span style="font-size:10px;background:#f1f5f9;color:#64748b;padding:2px 7px;border-radius:10px;margin-left:4px">'+inv.boltaStatus+'</span>';
+    }
     var statusCell=isNoTax
       ?'<span class="badge badge-green">정산완료 (비세발)</span>'
       :isSettle2&&inv.status==='payment-confirmed'
         ?'<span class="badge badge-green" style="background:rgba(0,196,113,.15);color:var(--green)">입금확인 · 발행대기</span>'
         :isSettle2
           ?'<span class="badge badge-green">정산완료 (세발건)</span>'
-          :'<span class="badge badge-green">발행완료</span>';
+          :'<span class="badge badge-green">발행완료</span>'+boltaRowBadge;
 
     var itemLabel=(inv.items[0]?inv.items[0].name:'없음')+(inv.items.length>1?' 외 '+(inv.items.length-1)+'건':'');
     var dateCell=isSettle2?(inv.paymentConfirmedAt||inv.issuedAt||'-'):(inv.issuedAt||inv.createdAt||'-').substring(0,16);
@@ -2880,14 +2890,15 @@ async function openInvoicePreview(id) {
       if(r.ok && d && !hasErr) {
         boltaData = d;
         console.log('[볼타 조회 성공]', JSON.stringify(d).substring(0,200));
-        // 국세청 승인번호 받아오면 로컬에도 저장
+        // 볼타 상태 & 국세청 승인번호 → 변경 시 저장 (행 배지 갱신용)
         var fetchedNts = d.ntsConfirmNum || d.confirmNum || d.ntcNum || null;
-        if(fetchedNts && fetchedNts !== inv.ntsConfirmNum) {
-          inv.ntsConfirmNum = fetchedNts;
-          inv.boltaStatus   = d.status || inv.boltaStatus;
+        var changed = false;
+        if(fetchedNts && fetchedNts !== inv.ntsConfirmNum) { inv.ntsConfirmNum = fetchedNts; changed = true; }
+        if(d.status && d.status !== inv.boltaStatus) { inv.boltaStatus = d.status; changed = true; }
+        if(changed) {
           saveState();
           dbSaveInvoice(inv);
-          console.log('[볼타 조회] 국세청 승인번호 저장:', fetchedNts);
+          console.log('[볼타 조회] 저장:', {nts: fetchedNts, status: d.status});
         }
       } else {
         var errCode = (d && d.code) || (d && d.body && d.body.code) || '';
@@ -2928,15 +2939,13 @@ async function openInvoicePreview(id) {
     boltaStatusBadge = '<span style="font-size:11px;color:#aaa;margin-left:8px">(볼타 조회 불가 - 로컬 데이터)</span>';
   }
 
-  // 국세청 승인번호: 볼타 응답에 있으면 우선, 없으면 issuanceKey 표시
+  // 국세청 승인번호만 표시 (볼타 발행키는 거래처 노출 금지)
   var ntsNum = (boltaData && (boltaData.ntsConfirmNum||boltaData.confirmNum||boltaData.ntcNum)) || inv.ntsConfirmNum || null;
   var txIdRow = '';
   if(ntsNum) {
     txIdRow = '<div style="margin-top:6px;font-size:12px;color:#666">국세청 승인번호: <strong>' + ntsNum + '</strong>' + boltaStatusBadge + '</div>';
-    if(issuanceKey) txIdRow += '<div style="margin-top:3px;font-size:11px;color:#aaa">볼타 발행키: ' + issuanceKey + '</div>';
-  } else if(issuanceKey) {
-    txIdRow = '<div style="margin-top:6px;font-size:12px;color:#666">볼타 발행키: <strong>' + issuanceKey + '</strong>' + boltaStatusBadge + '</div>';
   }
+  // txIdRow: 발행키는 절대 표시 안 함
 
   var itemRows = renderItems.map(function(it, i) {
     return '<tr>'
@@ -2967,20 +2976,14 @@ async function openInvoicePreview(id) {
   var cliBizT  = (renderClient && renderClient.businessType) || clientInfo.bizType || '';
   var cliBizI  = (renderClient && renderClient.businessItem) || clientInfo.bizItem || '';
 
-  // 국세청 승인번호 박스 (이미지 저장 시 잘 보이도록 강조)
+  // 국세청 승인번호 박스 (이미지 저장 시 잘 보이도록 강조 / 볼타 발행키는 표시 안 함)
   var ntsBox = ntsNum
     ? '<div style="background:#f0fdf4;border:1.5px solid #86efac;border-radius:6px;padding:10px 16px;margin-bottom:20px;display:flex;align-items:center;gap:10px">'
       + '<span style="font-size:11px;font-weight:700;color:#166534;white-space:nowrap">국세청 승인번호</span>'
       + '<span style="font-size:13px;font-weight:700;color:#111;letter-spacing:.05em;font-family:monospace">' + ntsNum + '</span>'
       + boltaStatusBadge
       + '</div>'
-    : (issuanceKey
-      ? '<div style="background:#f8f8fa;border:1px solid #ddd;border-radius:6px;padding:8px 16px;margin-bottom:20px;display:flex;align-items:center;gap:10px">'
-        + '<span style="font-size:11px;color:#888;white-space:nowrap">볼타 발행키</span>'
-        + '<span style="font-size:11px;color:#555;font-family:monospace">' + issuanceKey + '</span>'
-        + boltaStatusBadge
-        + '</div>'
-      : '');
+    : '';
 
   $('invoicePreviewContent').innerHTML = '<div id="invoicePrintArea" style="background:#fff;padding:36px 40px;border-radius:8px;font-family:Pretendard,sans-serif;color:#111;min-width:660px">'
 
