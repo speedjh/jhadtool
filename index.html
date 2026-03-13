@@ -2501,8 +2501,13 @@ function initApp(){
   if(!$('itemsTbody').children.length) addItem();
   var _now=new Date();
   var _todayStr = _now.getFullYear()+'-'+String(_now.getMonth()+1).padStart(2,'0')+'-'+String(_now.getDate()).padStart(2,'0');
-  if($('tr-filter-month')) $('tr-filter-month').value='';
-  if($('tr-filter-date')) $('tr-filter-date').value=_todayStr; // 기본값: 오늘 (불러오기 기준일)
+  // localStorage에 저장된 날짜/월 복원 (없으면 오늘)
+  var _savedDate  = localStorage.getItem('trFilterDate');
+  var _savedMonth = localStorage.getItem('trFilterMonth');
+  if($('tr-filter-month')) $('tr-filter-month').value = _savedMonth || '';
+  if($('tr-filter-date'))  $('tr-filter-date').value  = _savedDate  || _todayStr;
+  // 날짜가 없고 저장된 값도 없으면 localStorage에 오늘 날짜 저장
+  if(!_savedDate && !_savedMonth) localStorage.setItem('trFilterDate', _todayStr);
   window._trTab = 'in'; // 기본 탭: 입금
   renderAll(); showPage('dashboard');
   // 설정 메뉴: 어드민만 표시
@@ -4818,6 +4823,8 @@ function trDateToday(){
 function trClearDate(){
   if($('tr-filter-date'))  $('tr-filter-date').value  = '';
   if($('tr-filter-month')) $('tr-filter-month').value = '';
+  localStorage.removeItem('trFilterDate');
+  localStorage.removeItem('trFilterMonth');
   renderTransfers();
 }
 
@@ -5842,10 +5849,20 @@ document.addEventListener('DOMContentLoaded', function() {
   $('saveTransferBtn').addEventListener('click', saveTransfer);
   $('tr-filter-date').addEventListener('change', function(){
     if($('tr-filter-month')) $('tr-filter-month').value = '';
+    // 선택한 날짜를 localStorage에 저장 (재로그인/새로고침 후에도 유지)
+    var dv = $('tr-filter-date').value;
+    if(dv) localStorage.setItem('trFilterDate', dv);
+    else   localStorage.removeItem('trFilterDate');
+    localStorage.removeItem('trFilterMonth');
     renderTransfers();
   });
   $('tr-filter-month').addEventListener('change', function(){
     if($('tr-filter-date')) $('tr-filter-date').value = '';
+    // 선택한 월을 localStorage에 저장
+    var mv = $('tr-filter-month').value;
+    if(mv) localStorage.setItem('trFilterMonth', mv);
+    else   localStorage.removeItem('trFilterMonth');
+    localStorage.removeItem('trFilterDate');
     renderTransfers();
   });
   $('tr-filter-search').addEventListener('input', renderTransfers);
