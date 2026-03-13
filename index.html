@@ -3807,8 +3807,7 @@ async function confirmIssue(){
       identificationNumber:sup.bizno.replace(/-/g,''),
       organizationName:sup.org,
       representativeName:sup.rep,
-      taxRegistrationId:'0000',
-      manager:{email:sup.email},
+      manager:{email:sup.email||''},
       address:sup.address||'',
       businessType:sup.bizType||'',
       businessItem:sup.bizItem||''
@@ -3817,8 +3816,7 @@ async function confirmIssue(){
       identificationNumber:inv.client.bizno.replace(/-/g,''),
       organizationName:inv.client.org,
       representativeName:inv.client.rep,
-      taxRegistrationId:'0000',
-      managers:[{email:inv.client.email, name:clientInfo.contactName||''}],
+      managers:[{email:inv.client.email||'', name:clientInfo.contactName||''}],
       address:clientInfo.address||inv.client.address||'',
       businessType:clientInfo.bizType||'',
       businessItem:clientInfo.bizItem||''
@@ -4967,21 +4965,22 @@ async function testApiConnection(){
     const r=await fetch('/api/bolta-proxy',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({apiKey:k,customerKey:ck,env,method:'GET',path:'/v1/taxInvoices'})
+      body:JSON.stringify({apiKey:k,customerKey:ck,env,method:'GET',path:'/v1/customers'})
     });
     const body=await r.json().catch(()=>({}));
-    if(r.status===200||r.status===201){
-      toast('✅ API 연결 성공!','success');
-    } else if(r.status===401){
-      toast('❌ 인증 실패: API 키 또는 Customer Key를 확인해주세요','error');
-    } else if(r.status===403){
-      toast('❌ 권한 없음 (403): Customer Key를 확인해주세요','error');
-    } else if(r.status===404){
-      toast('✅ API 연결 성공! (인증 확인됨)','success');
-    } else {
-      toast('⚠️ 응답코드 '+r.status+': '+(body.message||body.error||JSON.stringify(body)),'error');
-    }
     console.log('[볼타 테스트]', r.status, body);
+    if(r.status===200||r.status===201){
+      const customerName = Array.isArray(body) && body[0] ? body[0].organizationName : '';
+      toast('✅ API 연결 성공!' + (customerName ? ' ('+customerName+')' : ''), 'success');
+    } else if(r.status===401){
+      toast('❌ 인증 실패: API 키를 확인해주세요','error');
+    } else if(r.status===403){
+      toast('❌ 권한 없음 (403): API 키 / 환경 설정을 확인해주세요','error');
+    } else {
+      // body.body.message or body.message
+      const msg = (body.body && body.body.message) || body.message || body.error || JSON.stringify(body);
+      toast('❌ 연결 실패: '+msg,'error');
+    }
   } catch(e){
     toast('❌ 연결 실패: '+e.message,'error');
     console.error('[볼타 테스트 오류]', e);
