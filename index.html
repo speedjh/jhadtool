@@ -1747,8 +1747,8 @@
     <div style="display:flex;align-items:center;justify-content:space-between;padding:18px 24px;border-bottom:1px solid var(--border)">
       <div style="font-size:15px;font-weight:600">세금계산서 발행 내역</div>
       <div style="display:flex;gap:8px;align-items:center">
-        <button onclick="downloadInvoiceImage()" class="btn btn-ghost btn-sm" style="gap:6px">🖼 이미지 저장</button>
-        <button onclick="downloadInvoicePDF()" class="btn btn-primary btn-sm" style="gap:6px">📄 PDF 저장</button>
+        <button onclick="downloadInvoiceImage()" class="btn btn-primary btn-sm" style="gap:6px;background:#10b981;border-color:#10b981">🖼 이미지 저장 (캡처용)</button>
+        <button onclick="downloadInvoicePDF()" class="btn btn-ghost btn-sm" style="gap:6px">📄 PDF 저장</button>
         <button class="modal-close" data-close="invoicePreviewModal">×</button>
       </div>
     </div>
@@ -2816,8 +2816,8 @@ function renderHistory(){
     var itemLabel=(inv.items[0]?inv.items[0].name:'없음')+(inv.items.length>1?' 외 '+(inv.items.length-1)+'건':'');
     var dateCell=isSettle2?(inv.paymentConfirmedAt||inv.issuedAt||'-'):(inv.issuedAt||'-');
 
-    var dlBtn='<button class="btn btn-ghost btn-sm" style="padding:5px 8px;font-size:11px" onclick="openInvoicePreview(\''+inv.id+'\')" title="계산서 저장">⬇</button>';
-    return '<tr>'
+    var dlBtn='<button class="btn btn-ghost btn-sm" style="padding:5px 8px;font-size:11px" onclick="event.stopPropagation();openInvoicePreview(\''+inv.id+'\')" title="미리보기/저장">🔍 미리보기</button>';
+    return '<tr style="cursor:pointer" onclick="openInvoicePreview(\''+inv.id+'\')">'
       +'<td>'+typeBadge+'</td>'
       +'<td><strong>'+inv.client.org+'</strong></td>'
       +'<td>'+managerChip(inv.managerName||'')+'</td>'
@@ -2844,6 +2844,7 @@ function openInvoicePreview(id) {
   if(!inv) return;
   previewInvId = id;
   var sup = state.settings.sup || {};
+  var clientInfo = state.clients.find(function(cl){ return cl.bizno && inv.client && inv.client.bizno && cl.bizno.replace(/-/g,'')===inv.client.bizno.replace(/-/g,''); }) || {};
   var isNoTax = inv.taxIssue === false;
   var supply = getSupply(inv);
   var tax = getTax(inv);
