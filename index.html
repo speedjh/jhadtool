@@ -2899,9 +2899,15 @@ async function openInvoicePreview(id) {
     boltaStatusBadge = '<span style="font-size:11px;color:#aaa;margin-left:8px">(볼타 조회 불가 - 로컬 데이터)</span>';
   }
 
-  var txIdRow = issuanceKey
-    ? '<div style="margin-top:6px;font-size:12px;color:#666">국세청 승인번호: <strong>' + issuanceKey + '</strong>' + boltaStatusBadge + '</div>'
-    : '';
+  // 국세청 승인번호: 볼타 응답에 있으면 우선, 없으면 issuanceKey 표시
+  var ntsNum = (boltaData && (boltaData.ntsConfirmNum||boltaData.confirmNum||boltaData.ntcNum)) || inv.ntsConfirmNum || null;
+  var txIdRow = '';
+  if(ntsNum) {
+    txIdRow = '<div style="margin-top:6px;font-size:12px;color:#666">국세청 승인번호: <strong>' + ntsNum + '</strong>' + boltaStatusBadge + '</div>';
+    if(issuanceKey) txIdRow += '<div style="margin-top:3px;font-size:11px;color:#aaa">볼타 발행키: ' + issuanceKey + '</div>';
+  } else if(issuanceKey) {
+    txIdRow = '<div style="margin-top:6px;font-size:12px;color:#666">볼타 발행키: <strong>' + issuanceKey + '</strong>' + boltaStatusBadge + '</div>';
+  }
 
   var itemRows = renderItems.map(function(it, i) {
     return '<tr>'
@@ -3980,8 +3986,11 @@ async function confirmIssue(){
     const errMsg = (data.body && data.body.message) || data.message || data.error || null;
     const isErr  = !res.ok || data.type === 'ERROR';
     if(!isErr){
+      console.log('[볼타 발행 성공 전체응답]', JSON.stringify(data));
       inv.issuedAt=new Date().toISOString().replace('T',' ').substring(0,16);
-      inv.txId=data.id||data.taxInvoiceId||'OK';
+      inv.txId=data.issuanceKey||data.id||data.taxInvoiceId||'OK';
+      // 국세청 승인번호 저장 (볼타 응답에 포함된 경우)
+      inv.ntsConfirmNum = data.ntsConfirmNum||data.confirmNum||data.ntcNum||null;
       if(inv.preIssue){
         // 선발행: 발행 후 이체 확인 대기로 (입금 받아야 함)
         inv.status='pending';
