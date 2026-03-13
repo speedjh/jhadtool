@@ -4292,8 +4292,10 @@ function renderTransfers(){
 
   if($('tr-stat-count')) $('tr-stat-count').textContent = allFiltered.length;
   if($('tr-stat-label-count')) $('tr-stat-label-count').textContent = filterLabel+' '+(tab==='in'?'입금':'출금')+' 건수';
-  if($('tr-stat-matched'))   $('tr-stat-matched').textContent   = state.transfers.filter(function(t){return t.invoiceId;}).length;
-  if($('tr-stat-unmatched')) $('tr-stat-unmatched').textContent = state.transfers.filter(function(t){return !t.invoiceId;}).length;
+  // 매칭/미매칭 카운트: 입금 내역만 (출금 제외)
+  var inOnly = state.transfers.filter(function(t){ return (t.amount||0) >= 0; });
+  if($('tr-stat-matched'))   $('tr-stat-matched').textContent   = inOnly.filter(function(t){return !!t.invoiceId;}).length;
+  if($('tr-stat-unmatched')) $('tr-stat-unmatched').textContent = inOnly.filter(function(t){return !t.invoiceId;}).length;
 
   // 헤더 업데이트
   var isIn = tab === 'in';
