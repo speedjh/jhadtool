@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- v20260313-safety-r3 -->
+<!-- v20260313-safety-r4 -->
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
@@ -2851,16 +2851,20 @@ async function openInvoicePreview(id) {
   var clientInfo = state.clients.find(function(cl){ return cl.bizno && inv.client && inv.client.bizno && cl.bizno.replace(/-/g,'')===inv.client.bizno.replace(/-/g,''); }) || {};
   var isNoTax = inv.taxIssue === false;
 
-  // 볼타 발행건이면 실제 API로 조회
+  // 볼타 발행건이면 실제 API로 조회 (5초 타임아웃, 실패 시 로컬 데이터로 fallback)
   var boltaData = null;
   var issuanceKey = inv.txId && inv.txId !== '정산완료' && inv.txId !== 'OK' ? inv.txId : null;
   if(issuanceKey && !isNoTax && state.settings.apiKey && state.settings.customerKey) {
-    $('invoicePreviewContent').innerHTML = '<div style="text-align:center;padding:60px;color:var(--text3)">볼타에서 계산서 불러오는 중...</div>';
+    $('invoicePreviewContent').innerHTML = '<div style="text-align:center;padding:60px;color:var(--text3)">볼타에서 계산서 불러오는 중...<br><small style="font-size:11px;margin-top:8px;display:block">최대 5초 대기 후 로컬 데이터로 표시됩니다</small></div>';
     openModal('invoicePreviewModal');
     try {
+      // 5초 타임아웃 - AbortController 사용
+      var _abortCtrl = new AbortController();
+      var _timeoutId = setTimeout(function(){ _abortCtrl.abort(); }, 5000);
       var r = await fetch('/api/bolta-proxy', {
         method: 'POST',
         headers: {'Content-Type':'application/json'},
+        signal: _abortCtrl.signal,
         body: JSON.stringify({
           apiKey: state.settings.apiKey,
           customerKey: state.settings.customerKey,
@@ -2869,10 +2873,13 @@ async function openInvoicePreview(id) {
           path: '/v1/taxInvoices/' + issuanceKey
         })
       });
+      clearTimeout(_timeoutId);
       var d = await r.json();
-      if(r.ok && d && !d.code) {
+      // 성공 조건: HTTP OK + 에러코드 없음
+      var hasErr = d && (d.code || d.type === 'ERROR' || (d.body && d.body.code));
+      if(r.ok && d && !hasErr) {
         boltaData = d;
-        console.log('[볼타 조회 전체응답]', JSON.stringify(d));
+        console.log('[볼타 조회 성공]', JSON.stringify(d).substring(0,200));
         // 국세청 승인번호 받아오면 로컬에도 저장
         var fetchedNts = d.ntsConfirmNum || d.confirmNum || d.ntcNum || null;
         if(fetchedNts && fetchedNts !== inv.ntsConfirmNum) {
@@ -2883,19 +2890,29 @@ async function openInvoicePreview(id) {
           console.log('[볼타 조회] 국세청 승인번호 저장:', fetchedNts);
         }
       } else {
-        console.warn('[볼타 조회 실패]', d);
+        var errCode = (d && d.code) || (d && d.body && d.body.code) || '';
+        console.warn('[볼타 조회 실패] 로컬 데이터로 표시. 코드:', errCode, d);
+        // 조회 불가 상태 → 로컬 데이터로 계속 진행 (boltaData=null 유지)
       }
     } catch(e) {
-      console.warn('[볼타 조회 오류]', e.message);
+      if(e.name === 'AbortError') {
+        console.warn('[볼타 조회] 5초 타임아웃 → 로컬 데이터로 표시');
+      } else {
+        console.warn('[볼타 조회 오류]', e.message);
+      }
+      // 어떤 오류든 boltaData=null 유지 → 로컬 데이터로 fallback
     }
   }
 
   // 볼타 데이터가 있으면 그 데이터로, 없으면 로컬 데이터로 렌더링
   var renderSup    = boltaData ? boltaData.supplier  : null;
   var renderClient = boltaData ? boltaData.supplied  : null;
-  var renderItems  = boltaData ? boltaData.items     : inv.items;
+  var renderItems  = (boltaData && boltaData.items && boltaData.items.length) ? boltaData.items : (inv.items || []);
   var renderDate   = boltaData ? (boltaData.date||boltaData.issuedAt||inv.issuedAt||inv.date) : (inv.issuedAt||inv.date||'-');
   var renderDesc   = boltaData ? boltaData.description : inv.memo;
+
+  // renderItems 방어 (빈 배열이면 로컬 items 사용)
+  if(!renderItems || !renderItems.length) renderItems = inv.items || [];
 
   var supply = renderItems.reduce(function(s,i){return s+(i.supplyCost||0);},0);
   var tax    = renderItems.reduce(function(s,i){return s+(i.tax||0);},0);
