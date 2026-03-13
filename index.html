@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- v20260313-safety-r5 -->
+<!-- v20260313-safety-r6 -->
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
@@ -2352,6 +2352,7 @@ function statusBadge(s, taxIssue){
   if(s==='pending')             return'<span class="badge badge-yellow">이체 확인 대기</span>';
   if(s==='payment-confirmed')   return'<span class="badge badge-green" style="background:rgba(0,196,113,.15);color:var(--green)">입금확인</span>';
   if(s==='pre-issue')            return'<span class="badge badge-blue">선발행 대기</span>';
+  if(s==='issue-failed')        return'<span class="badge badge-red">발행 실패</span>';
   if(s==='issued'&&taxIssue===false) return'<span class="badge badge-green">정산완료</span>';
   if(s==='issued')              return'<span class="badge badge-green">발행완료</span>';
   return s;
@@ -2564,7 +2565,7 @@ function renderDashboard(){
   })();
 
   $('stat-pending').textContent=state.invoices.filter(function(i){return i.status==='pending';}).length;
-  var issueReadyList=state.invoices.filter(function(i){return i.status==='payment-confirmed'||i.status==='pre-issue';});
+  var issueReadyList=state.invoices.filter(function(i){return i.status==='payment-confirmed'||i.status==='pre-issue'||i.status==='issue-failed';});
   $('stat-issue-ready').textContent=issueReadyList.length;
 
   // 지연 계산 (paymentConfirmedAt 기준)
@@ -2652,7 +2653,8 @@ function renderDashboard(){
 // ISSUE READY (계산서 발행 대기)
 // ══════════════════════════════════════════
 function renderIssueReady(){
-  var list=state.invoices.filter(function(i){return i.status==='payment-confirmed'||i.status==='pre-issue';});
+  // 발행 실패 건도 포함 (payment-confirmed/pre-issue 상태이면서 issueFailedAt 있는 건)
+  var list=state.invoices.filter(function(i){return i.status==='payment-confirmed'||i.status==='pre-issue'||i.status==='issue-failed';});
   var tbody=$('issueReadyTbody'); if(!tbody)return;
   tbody.innerHTML=list.length?list.map(function(inv){
     var dueHtml='-';
@@ -2678,21 +2680,29 @@ function renderIssueReady(){
             :delayDays>0?'<div style="font-size:11px;color:var(--text3)">'+delayDays+'일 경과</div>':'')
       :'-';
     var isPreIssue=inv.status==='pre-issue';
+    var isFailed=inv.status==='issue-failed';
     var preIssueBadge=isPreIssue?'<span style="display:inline-block;font-size:10px;font-weight:700;color:#fff;background:var(--accent2);border-radius:4px;padding:1px 7px;margin-left:6px">선발행</span>':'';
-    return '<tr class="clickable-row '+rowCls+'" data-action="open-detail" data-id="'+inv.id+'" style="cursor:pointer'+(isPreIssue?';background:rgba(79,142,247,.05)':'')+'">'
-      +'<td><strong>'+inv.client.org+'</strong>'+preIssueBadge+'<br><span style="font-size:12px;color:var(--text3)">'+inv.client.bizno+'</span></td>'
+    var failBadge=isFailed?'<span style="display:inline-block;font-size:10px;font-weight:700;color:#fff;background:var(--red);border-radius:4px;padding:1px 7px;margin-left:6px">발행실패</span>':'';
+    // 실패 사유 툴팁
+    var failReasonHtml=isFailed&&inv.issueFailReason
+      ?'<div style="font-size:11px;color:var(--red);margin-top:3px;max-width:180px;white-space:normal">⚠ '+inv.issueFailReason.substring(0,60)+(inv.issueFailReason.length>60?'…':'')+'</div>':''
+    var rowBg=isFailed?';background:rgba(240,68,82,.04)':isPreIssue?';background:rgba(79,142,247,.05)':'';
+    var actionBtns=isFailed
+      ?'<button class="btn btn-warning btn-sm" data-action="issue" data-id="'+inv.id+'" style="background:var(--yellow);color:#111"> 재시도</button>'
+       +'<button class="btn btn-danger btn-sm" data-action="del-invoice" data-id="'+inv.id+'">삭제</button>'
+      :'<button class="btn btn-primary btn-sm" data-action="issue" data-id="'+inv.id+'"> 발행</button>'
+       +'<button class="btn btn-danger btn-sm" data-action="del-invoice" data-id="'+inv.id+'">삭제</button>';
+    return '<tr class="clickable-row '+rowCls+'" data-action="open-detail" data-id="'+inv.id+'" style="cursor:pointer'+rowBg+'">'
+      +'<td><strong>'+inv.client.org+'</strong>'+preIssueBadge+failBadge+'<br><span style="font-size:12px;color:var(--text3)">'+inv.client.bizno+'</span>'+failReasonHtml+'</td>'
       +'<td>'+managerChip(inv.managerName||'')+'</td>'
       +'<td style="color:var(--text2)">'+itemLabel+'</td>'
       +'<td class="mono">'+fmt(getSupply(inv))+'원</td>'
       +'<td class="mono">'+fmt(getTax(inv))+'원</td>'
       +'<td class="mono"><strong>'+fmt(getTotal(inv))+'원</strong></td>'
-      +'<td style="font-size:12px;font-weight:500">'+(isPreIssue?'<span style="font-size:10px;font-weight:700;color:var(--accent)">선발행 대기</span><br>':'')+delayHtml+'</td>'
+      +'<td style="font-size:12px;font-weight:500">'+(isPreIssue?'<span style="font-size:10px;font-weight:700;color:var(--accent)">선발행 대기</span><br>':isFailed?'<span style="font-size:10px;font-weight:700;color:var(--red)">발행 실패</span><br>':'')+delayHtml+'</td>'
       +'<td>'+dueHtml+'</td>'
       +'<td style="color:var(--text3);font-size:12px">'+(inv.memo||'-')+'</td>'
-      +'<td><div class="flex gap-2">'
-        +'<button class="btn btn-primary btn-sm" data-action="issue" data-id="'+inv.id+'"> 발행</button>'
-        +'<button class="btn btn-danger btn-sm" data-action="del-invoice" data-id="'+inv.id+'">삭제</button>'
-      +'</div></td>'
+      +'<td><div class="flex gap-2">'+actionBtns+'</div></td>'
       +'</tr>';
   }).join('')
   :'<tr><td colspan="10" style="text-align:center;color:var(--text3);padding:30px">발행 대기 중인 건이 없습니다</td></tr>';
@@ -2895,6 +2905,15 @@ async function openInvoicePreview(id) {
         var changed = false;
         if(fetchedNts && fetchedNts !== inv.ntsConfirmNum) { inv.ntsConfirmNum = fetchedNts; changed = true; }
         if(d.status && d.status !== inv.boltaStatus) { inv.boltaStatus = d.status; changed = true; }
+        // 🔴 케이스2: 볼타 상태가 CANCELLED → issue-failed로 전환
+        if(d.status === 'CANCELLED' && inv.status === 'issued') {
+          inv.status = 'issue-failed';
+          inv.issueFailedAt = inv.issueFailedAt || new Date().toISOString().replace('T',' ').substring(0,16);
+          inv.issueFailReason = '볼타 국세청 전송 실패 (CANCELLED)';
+          changed = true;
+          toast('⚠️ 국세청 전송 실패(CANCELLED) 감지 - 발행 대기로 이동됩니다', 'error');
+          console.warn('[볼타 CANCELLED] issue-failed 전환:', inv.id);
+        }
         if(changed) {
           saveState();
           dbSaveInvoice(inv);
@@ -3891,6 +3910,15 @@ function openIssueModal(id){
   pendingIssueId=id;
   const inv=state.invoices.find(x=>x.id===id); if(!inv)return;
 
+  // 🔄 재시도: issue-failed 상태이면 실패 플래그 초기화 후 발행 허용
+  if(inv.status === 'issue-failed') {
+    inv.status = inv.preIssue ? 'pre-issue' : 'payment-confirmed';
+    delete inv.issueFailedAt;
+    delete inv.issueFailReason;
+    saveState(); dbSaveInvoice(inv);
+    console.log('[재시도] issue-failed → 발행 가능 상태로 초기화:', inv.id);
+  }
+
   // ══════════════════════════════════════════════════════
   // 🔒 핵심 안전장치: 이미 발행된 건은 모달에서 완전 차단
   // txId가 있고(볼타 발행키 존재) status가 issued면 → 이미 발행됨
@@ -4150,10 +4178,26 @@ async function confirmIssue(){
         hint = '<br><small style="color:var(--text3)">→ 설정탭의 <b>API Key</b>와 <b>Customer Key</b>가 올바른지, 환경(테스트/라이브)이 맞는지 확인하세요.</small>';
       }
       ae.innerHTML=`<div class="alert alert-error">❌ 발행 실패: ${failMsg}${hint}</div>`;
+      // 🔴 케이스1: API 호출 실패 → issue-failed 상태 저장
+      inv.status = 'issue-failed';
+      inv.issueFailedAt = new Date().toISOString().replace('T',' ').substring(0,16);
+      inv.issueFailReason = failMsg.replace(/<[^>]*>/g,'').substring(0,120);
+      saveState(); dbSaveInvoice(inv);
+      console.warn('[발행 실패] status=issue-failed 저장:', inv.id, inv.issueFailReason);
       _resetIssueUI();
     }
   }catch(e){
     ae.innerHTML=`<div class="alert alert-error">❌ API 오류: ${e.message}</div>`;
+    // 🔴 케이스1: 예외 발생 → issue-failed 상태 저장
+    try {
+      var _fInv = state.invoices.find(function(i){ return i.id===pendingIssueId; });
+      if(_fInv && _fInv.status !== 'issued') {
+        _fInv.status = 'issue-failed';
+        _fInv.issueFailedAt = new Date().toISOString().replace('T',' ').substring(0,16);
+        _fInv.issueFailReason = e.message.substring(0,120);
+        saveState(); dbSaveInvoice(_fInv);
+      }
+    } catch(e3){}
     try{ _resetIssueUI(); } catch(e2){ _isIssuingInProgress=false; if(btn){ btn.disabled=false; btn.textContent=' 세금계산서 발행'; } }
   }
 }
