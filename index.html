@@ -1659,10 +1659,11 @@
           <div class="section-title">볼타 API 설정</div>
           <div style="font-size:12px;color:var(--text3);margin-bottom:12px;line-height:1.6">
             볼타 API를 통해 세금계산서를 발행합니다.<br>
-            테스트: <code style="font-size:11px">xapi.bolta.io</code> / 운영: <code style="font-size:11px">api.bolta.io</code>
+            테스트: <code style="font-size:11px">xapi.bolta.io</code> / 운영: <code style="font-size:11px">api.bolta.io</code><br>
+            <span style="color:#e67e22;font-weight:600">⚠️ API Key가 live_ 로 시작하더라도, app.bolta.io에서 발급받은 키가 테스트 키이면 환경을 "테스트"로 선택하세요.</span>
           </div>
-          <div class="form-group" style="margin-bottom:12px"><label>API 키</label><input type="password" id="set-apikey" placeholder="test_xxxxxxxxxx"></div>
-          <div class="form-group" style="margin-bottom:12px"><label>Customer Key</label><input type="text" id="set-customerkey" placeholder="CustomerKey_xxxxxxxxxx"></div>
+          <div class="form-group" style="margin-bottom:12px"><label>API 키</label><input type="password" id="set-apikey" placeholder="live_xxxxxxxxxx 또는 test_xxxxxxxxxx"></div>
+          <div class="form-group" style="margin-bottom:12px"><label>Customer Key</label><input type="text" id="set-customerkey" placeholder="CustomerKey_xxxxxxxxxx"><div style="font-size:11px;color:var(--text3);margin-top:4px">app.bolta.io → 거래처 관리에서 확인하거나 /v1/customers API로 조회</div></div>
           <div class="form-group" style="margin-bottom:16px"><label>환경</label><select id="set-env"><option value="test">테스트 (xapi.bolta.io)</option><option value="live">라이브 (api.bolta.io)</option></select></div>
           <button id="saveSettingsBtn" class="btn btn-primary">저장</button>
           <button id="testApiBtn" class="btn btn-ghost" style="margin-left:8px">연결 테스트</button>
@@ -3806,6 +3807,7 @@ async function confirmIssue(){
       identificationNumber:sup.bizno.replace(/-/g,''),
       organizationName:sup.org,
       representativeName:sup.rep,
+      taxRegistrationId:'0000',
       manager:{email:sup.email},
       address:sup.address||'',
       businessType:sup.bizType||'',
@@ -3815,6 +3817,7 @@ async function confirmIssue(){
       identificationNumber:inv.client.bizno.replace(/-/g,''),
       organizationName:inv.client.org,
       representativeName:inv.client.rep,
+      taxRegistrationId:'0000',
       managers:[{email:inv.client.email, name:clientInfo.contactName||''}],
       address:clientInfo.address||inv.client.address||'',
       businessType:clientInfo.bizType||'',
