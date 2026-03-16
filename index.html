@@ -2591,9 +2591,14 @@ function renderDashboard(){
   })();
 
   $('stat-pending').textContent=state.invoices.filter(function(i){return i.status==='pending';}).length;
+  // renderIssueReady와 동일한 필터 적용 (txId 차단 목록 포함)
+  function _dashTxBlocked(txId){
+    if(!txId || txId==='정산완료' || txId==='OK') return false;
+    return txId.startsWith('IssuanceKey') || txId.startsWith('BOLTA') || txId.startsWith('ik_');
+  }
   var issueReadyList=state.invoices.filter(function(i){
     if(i.status==='issued') return false;
-    if(i.preIssued && i.txId && i.txId!=='정산완료') return false;
+    if(i.preIssued && _dashTxBlocked(i.txId)) return false;
     return i.status==='payment-confirmed'||i.status==='pre-issue'||i.status==='issue-failed';
   });
   $('stat-issue-ready').textContent=issueReadyList.length;
@@ -2683,10 +2688,15 @@ function renderDashboard(){
 // ISSUE READY (계산서 발행 대기)
 // ══════════════════════════════════════════
 function renderIssueReady(){
-  // ✅ 발행 완료된 건은 무조건 제외 (status=issued이거나 preIssued+txId 있는 선발행 건)
+  // ✅ 발행 완료된 건은 무조건 제외
+  // txId 차단 목록: IssuanceKey_..., BOLTA_...(확인필요 포함), ik_... 형식은 이미 볼타에 제출된 것
+  function _isTxBlocked(txId){
+    if(!txId || txId==='정산완료' || txId==='OK') return false;
+    return txId.startsWith('IssuanceKey') || txId.startsWith('BOLTA') || txId.startsWith('ik_');
+  }
   var list=state.invoices.filter(function(i){
-    if(i.status==='issued') return false;                          // 발행완료 제외
-    if(i.preIssued && i.txId && i.txId!=='정산완료') return false; // 선발행 완료 제외
+    if(i.status==='issued') return false;                         // 발행완료 제외
+    if(i.preIssued && _isTxBlocked(i.txId)) return false;        // 선발행 완료/시도 제외
     return i.status==='payment-confirmed'||i.status==='pre-issue'||i.status==='issue-failed';
   });
   var tbody=$('issueReadyTbody'); if(!tbody)return;
@@ -3904,9 +3914,17 @@ function openIssueModal(id){
   const inv=state.invoices.find(x=>x.id===id); if(!inv)return;
 
   // 🔒 최우선 안전장치: status=issued 이거나 preIssued+txId 있으면 모달 열기 자체 차단
-  var alreadyDone = (inv.status==='issued') || (inv.preIssued && inv.txId && inv.txId!=='정산완료');
+  // BOLTA_CONFIRM_NEEDED / BOLTA_KEY_PENDING_ 접두사도 이미 발행 시도한 건으로 차단
+  var _txBlocked = inv.txId && inv.txId !== '정산완료' && inv.txId !== 'OK'
+    && (inv.txId.startsWith('IssuanceKey') || inv.txId.startsWith('BOLTA') || inv.txId.startsWith('ik_'));
+  var alreadyDone = (inv.status==='issued') || (inv.preIssued && _txBlocked);
   if(alreadyDone){
-    toast('⛔ 이미 발행된 계산서입니다. ('+inv.txId+')','error');
+    var _blockMsg = inv.txId && inv.txId.startsWith('BOLTA_CONFIRM_NEEDED')
+      ? '⛔ 발행 요청됨 (확인 필요). 볼타 대시보드에서 발행키를 확인하세요.'
+      : inv.txId && inv.txId.startsWith('BOLTA_KEY_PENDING')
+      ? '⛔ 발행 완료됨 (므키 확인 필요). 볼타 대시보드에서 발행키를 복사해주세요.'
+      : '⛔ 이미 발행된 계산서입니다. (' + (inv.txId||'') + ')';
+    toast(_blockMsg, 'error');
     renderIssueReady(); // 대기열에서 즉시 제거
     return;
   }
@@ -3916,7 +3934,8 @@ function openIssueModal(id){
     inv.status = inv.preIssue ? 'pre-issue' : 'payment-confirmed';
     delete inv.issueFailedAt;
     delete inv.issueFailReason;
-    saveState(); dbSaveInvoice(inv);
+    saveState();
+    dbSaveInvoice(inv); // 비동기이나 openModal 전이므로 괜찮음
     console.log('[재시도] issue-failed → 발행 가능 상태로 초기화:', inv.id);
   }
 
@@ -3925,7 +3944,7 @@ function openIssueModal(id){
   // txId가 있고(볼타 발행키 존재) status가 issued면 → 이미 발행됨
   // ══════════════════════════════════════════════════════
   var alreadyIssued = (inv.status==='issued') && inv.txId && inv.txId !== '정산완료' && inv.txId !== 'OK';
-  var alreadyPreIssued = inv.preIssued && inv.txId; // 선발행 완료된 건
+  var alreadyPreIssued = inv.preIssued && _txBlocked; // 선발행 완료된 건
   var isBlocked = alreadyIssued || alreadyPreIssued;
 
   $('issueAlert').innerHTML='';
@@ -3990,9 +4009,16 @@ async function confirmIssue(){
   // 🔒 안전장치 2: 이미 발행된 건 재발행 완전 차단 (DB 수준)
   // ══════════════════════════════════════════════════
   var alreadyIssued2 = (inv.status==='issued') && inv.txId && inv.txId !== '정산완료' && inv.txId !== 'OK';
-  var alreadyPreIssued2 = inv.preIssued && inv.txId;
+  var _txBlocked2 = inv.txId && inv.txId !== '정산완료' && inv.txId !== 'OK'
+    && (inv.txId.startsWith('IssuanceKey') || inv.txId.startsWith('BOLTA') || inv.txId.startsWith('ik_'));
+  var alreadyPreIssued2 = inv.preIssued && _txBlocked2;
   if(alreadyIssued2 || alreadyPreIssued2) {
-    ae.innerHTML='<div class="alert alert-error">⛔ 이미 발행된 계산서입니다. (발행키: '+inv.txId+')<br>중복 발행은 절대 불가합니다. 처리이력을 확인하세요.</div>';
+    var _blockMsg2 = inv.txId && inv.txId.startsWith('BOLTA_CONFIRM_NEEDED')
+      ? '⛔ 발행 요청됨 (확인 필요). 볼타 대시보드에서 발행키를 확인하세요.'
+      : inv.txId && inv.txId.startsWith('BOLTA_KEY_PENDING')
+      ? '⛔ 발행 완료됨 (키 미수신). 볼타 대시보드에서 발행키를 확인하세요.'
+      : '⛔ 이미 발행된 계산서입니다. (발행키: '+inv.txId+')<br>중복 발행은 절대 불가합니다. 처리이력을 확인하세요.';
+    ae.innerHTML='<div class="alert alert-error">'+_blockMsg2+'</div>';
     btn.disabled=true; btn.textContent='⛔ 발행 불가';
     return;
   }
@@ -4187,19 +4213,12 @@ async function confirmIssue(){
     var data = await res.json();
     console.log('[볼타 발행 응답]', res.status, JSON.stringify(data).substring(0,300));
 
-    // NOT_FOUND이고 현재 live 환경이면 test로 자동 재시도
+    // NOT_FOUND이고 현재 live 환경이면 → 자동재시도 금지 (중복발행 위험)
+    // live에서 NOT_FOUND = API Key/경로 문제이며, 재시도 시 test에서 별도 발행될 수 있음
     var _isNotFound = !res.ok && ((data.body && data.body.code==='NOT_FOUND') || (data.code==='NOT_FOUND'));
     if(_isNotFound && _dbgEnv === 'live') {
-      console.log('[볼타 발행] live NOT_FOUND → test 환경으로 자동 재시도');
-      res = await callBoltaIssue('test');
-      data = await res.json();
-      console.log('[볼타 발행 재시도 응답]', res.status, JSON.stringify(data).substring(0,300));
-      // 성공하면 설정의 env를 test로 자동 업데이트
-      if(res.ok || !(data.type==='ERROR')) {
-        state.settings.env = 'test';
-        saveState(); dbSaveSettings();
-        toast('환경이 테스트(xapi.bolta.io)로 자동 변경되었습니다','info');
-      }
+      console.warn('[볼타 발행] live NOT_FOUND → 자동 재시도 금지 (중복발행 방지)');
+      // 자동 재시도 없음: 실패로 처리하여 사용자가 수동으로 환경 확인하도록 안내
     }
     // Bolta 에러 응답 구조: { body: { message, code }, type: 'ERROR' } 또는 직접 { message, code }
     const errMsg = (data.body && data.body.message) || data.message || data.error || null;
@@ -4207,7 +4226,16 @@ async function confirmIssue(){
     if(!isErr){
       console.log('[볼타 발행 성공 전체응답]', JSON.stringify(data));
       inv.issuedAt=new Date().toISOString().replace('T',' ').substring(0,16);
-      inv.txId=data.issuanceKey||data.id||data.taxInvoiceId||'OK';
+      // ⚠️ issuanceKey가 없으면 'OK' 대신 null 저장 (txId='OK'는 발행완료로 오인될 수 있음)
+      var _rawTxId = data.issuanceKey||data.id||data.taxInvoiceId||null;
+      if(!_rawTxId) {
+        console.warn('[볼타 발행] issuanceKey 미수신 - 응답:', JSON.stringify(data).substring(0,200));
+        // issuanceKey 없이 성공 응답 → 발행은 됐으나 키 미수신 → 확인 필요 상태로 저장
+        _rawTxId = 'BOLTA_KEY_PENDING_' + new Date().toISOString().replace(/[^0-9]/g,'').substring(0,14);
+      }
+      inv.txId = _rawTxId;
+      // issuanceKey 미수신 경고 표시
+      var _keyMissing = _rawTxId.startsWith('BOLTA_KEY_PENDING_');
       // ✅ 발행 성공 → localStorage 마킹 제거 (중복발행 방지 해제)
       localStorage.removeItem(_issueAttemptKey);
       // 국세청 승인번호 저장 (볼타 응답에 포함된 경우)
@@ -4221,13 +4249,23 @@ async function confirmIssue(){
         inv.preIssued=true;
         // 선발행은 입금 미확인 → 미수금 자동 등록
         autoCreateReceivable(inv);
-        ae.innerHTML='<div class="alert alert-success">✅ 선발행 완료! 계산서가 발행되었습니다.<br><small>입금 확인 후 정산완료 처리하세요.</small></div>';
-        btn.textContent='발행 완료 ✓'; toast('선발행 완료! 처리이력에 기록되었습니다.','success');
+        if(_keyMissing) {
+          ae.innerHTML='<div class="alert alert-warning">⚠️ 선발행 완료 (발행키 미수신)<br><small>볼타 대시보드에서 발행키를 확인하여 기록해주세요.</small></div>';
+          btn.textContent='발행 완료 (키 확인 필요)'; toast('⚠️ 선발행 완료 - 발행키 확인 필요','warning');
+        } else {
+          ae.innerHTML='<div class="alert alert-success">✅ 선발행 완료! 계산서가 발행되었습니다.<br><small>입금 확인 후 정산완료 처리하세요.</small></div>';
+          btn.textContent='발행 완료 ✓'; toast('선발행 완료! 처리이력에 기록되었습니다.','success');
+        }
       } else {
         inv.status='issued';
         autoCreateReceivable(inv);
-        ae.innerHTML='<div class="alert alert-success">✅ 세금계산서가 성공적으로 발행되었습니다!</div>';
-        btn.textContent='발행 완료 ✓'; toast('발행 완료! 미수금 자동 등록됨','success');
+        if(_keyMissing) {
+          ae.innerHTML='<div class="alert alert-warning">⚠️ 발행 완료 (발행키 미수신)<br><small>볼타 대시보드에서 발행키를 확인하여 기록해주세요.</small></div>';
+          btn.textContent='발행 완료 (키 확인 필요)'; toast('⚠️ 발행 완료 - 발행키 확인 필요','warning');
+        } else {
+          ae.innerHTML='<div class="alert alert-success">✅ 세금계산서가 성공적으로 발행되었습니다!</div>';
+          btn.textContent='발행 완료 ✓'; toast('발행 완료! 미수금 자동 등록됨','success');
+        }
       }
       // ══════════════════════════════════════════════
       // 🔒 안전장치 3: DB 저장 확인 후 닫기
@@ -4259,25 +4297,35 @@ async function confirmIssue(){
       // 🔴 케이스1: API 호출 실패 → issue-failed 상태 저장
       inv.status = 'issue-failed';
       inv.issueFailedAt = new Date().toISOString().replace('T',' ').substring(0,16);
-      inv.issueFailReason = failMsg.replace(/<[^>]*>/g,'').substring(0,120);
-      saveState(); dbSaveInvoice(inv);
+      inv.issueFailReason = (failMsg||'알 수 없는 오류').replace(/<[^>]*>/g,'').substring(0,120);
+      saveState();
+      try { await dbSaveInvoice(inv); console.warn('[발행 실패] DB 저장 완료:', inv.id, inv.issueFailReason); }
+      catch(dbErr) { console.error('[발행 실패] DB 저장 오류:', dbErr.message); }
       console.warn('[발행 실패] status=issue-failed 저장:', inv.id, inv.issueFailReason);
+      // 실패 알림 토스트
+      toast('❌ 발행 실패: ' + inv.issueFailReason.substring(0,40), 'error');
       // ✅ 발행 실패(API 오류) → localStorage 마킹 제거
       try{ localStorage.removeItem(_issueAttemptKey); }catch(e){}
+      renderIssueReady(); renderAll(); // 실패 상태 UI 즉시 반영
       _resetIssueUI();
     }
   }catch(e){
-    ae.innerHTML=`<div class="alert alert-error">❌ API 오류: ${e.message}</div>`;
-    // 🔴 케이스1: 예외 발생 → issue-failed 상태 저장
+    var _eMsg = (e && e.message)||'네트워크/시스템 오류';
+    ae.innerHTML=`<div class="alert alert-error">❌ API 오류: ${_eMsg}</div>`;
+    console.error('[발행 예외]', _eMsg, e);
+    // 🔴 케이스2: 예외 발생 → issue-failed 상태 저장
     try {
       var _fInv = state.invoices.find(function(i){ return i.id===pendingIssueId; });
       if(_fInv && _fInv.status !== 'issued') {
         _fInv.status = 'issue-failed';
         _fInv.issueFailedAt = new Date().toISOString().replace('T',' ').substring(0,16);
-        _fInv.issueFailReason = e.message.substring(0,120);
-        saveState(); dbSaveInvoice(_fInv);
+        _fInv.issueFailReason = _eMsg.substring(0,120);
+        saveState();
+        await dbSaveInvoice(_fInv); // await로 저장 보장
+        toast('❌ 발행 오류: ' + _fInv.issueFailReason.substring(0,40), 'error');
+        renderIssueReady(); renderAll(); // 실패 상태 UI 즉시 반영
       }
-    } catch(e3){}
+    } catch(e3){ console.error('[발행 예외 처리 중 오류]', e3); }
     // ✅ 예외 발생 → localStorage 마킹 제거
     try{ localStorage.removeItem(_issueAttemptKey); }catch(ex){}
     try{ _resetIssueUI(); } catch(e2){ _isIssuingInProgress=false; if(btn){ btn.disabled=false; btn.textContent=' 세금계산서 발행'; } }
