@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- v20260313-safety-r6 -->
+<!-- v20260313-safety-r7 -->
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
@@ -1721,9 +1721,15 @@
             특정 월의 이체 내역을 전체 삭제합니다.<br>
             <strong style="color:var(--red)">삭제된 데이터는 복구할 수 없습니다.</strong>
           </div>
-          <div class="flex gap-2 items-center">
-            <input type="month" id="admin-delete-month" style="width:140px;padding:7px 10px;border:1px solid var(--border);border-radius:8px;font-size:13px;background:var(--surface2);color:var(--text)">
-            <select id="admin-delete-type" style="width:130px">
+          <div class="flex gap-2 items-center" style="flex-wrap:wrap">
+            <select id="admin-delete-year" style="width:90px;padding:7px 10px;border:1px solid var(--border);border-radius:8px;font-size:13px;background:var(--surface2);color:var(--text)"></select>
+            <select id="admin-delete-mon" style="width:80px;padding:7px 10px;border:1px solid var(--border);border-radius:8px;font-size:13px;background:var(--surface2);color:var(--text)">
+              <option value="01">1월</option><option value="02">2월</option><option value="03">3월</option>
+              <option value="04">4월</option><option value="05">5월</option><option value="06">6월</option>
+              <option value="07">7월</option><option value="08">8월</option><option value="09">9월</option>
+              <option value="10">10월</option><option value="11">11월</option><option value="12">12월</option>
+            </select>
+            <select id="admin-delete-type" style="width:130px;padding:7px 10px;border:1px solid var(--border);border-radius:8px;font-size:13px;background:var(--surface2);color:var(--text)">
               <option value="all">전체 (입금+출금)</option>
               <option value="in">입금만</option>
               <option value="out">출금만</option>
@@ -2424,6 +2430,21 @@ function renderSettingsForm(){
     $('set-quote-account').readOnly = !isAdmin;
     $('set-quote-account').style.background = isAdmin?'':'var(--surface2)';
     $('set-quote-account').style.color      = isAdmin?'':'var(--text3)';
+  }
+  // 연도 select 초기화 (현재 연도 기준 ±3년)
+  var yearSel = $('admin-delete-year');
+  if(yearSel && !yearSel.options.length) {
+    var curY = new Date().getFullYear();
+    for(var y = curY+1; y >= curY-3; y--) {
+      var opt = document.createElement('option');
+      opt.value = String(y);
+      opt.textContent = y+'년';
+      if(y === curY) opt.selected = true;
+      yearSel.appendChild(opt);
+    }
+    // 현재 월 선택
+    var curM = String(new Date().getMonth()+1).padStart(2,'0');
+    if($('admin-delete-mon')) $('admin-delete-mon').value = curM;
   }
 }
 
@@ -5169,7 +5190,9 @@ async function adminDeleteTransfers(){
   var isAdmin = state.currentUser && state.currentUser.role === 'admin';
   if(!isAdmin){ toast('관리자만 사용할 수 있습니다.', 'error'); return; }
 
-  var month = $('admin-delete-month') ? $('admin-delete-month').value : '';
+  var year  = $('admin-delete-year') ? $('admin-delete-year').value : '';
+  var mon   = $('admin-delete-mon')  ? $('admin-delete-mon').value  : '';
+  var month = (year && mon) ? year+'-'+mon : '';
   var type  = $('admin-delete-type')  ? $('admin-delete-type').value  : 'all';
   if(!month){ toast('삭제할 월을 선택해주세요.', 'warning'); return; }
 
