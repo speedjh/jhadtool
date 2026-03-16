@@ -2591,7 +2591,11 @@ function renderDashboard(){
   })();
 
   $('stat-pending').textContent=state.invoices.filter(function(i){return i.status==='pending';}).length;
-  var issueReadyList=state.invoices.filter(function(i){return i.status==='payment-confirmed'||i.status==='pre-issue'||i.status==='issue-failed';});
+  var issueReadyList=state.invoices.filter(function(i){
+    if(i.status==='issued') return false;
+    if(i.preIssued && i.txId && i.txId!=='정산완료') return false;
+    return i.status==='payment-confirmed'||i.status==='pre-issue'||i.status==='issue-failed';
+  });
   $('stat-issue-ready').textContent=issueReadyList.length;
 
   // 지연 계산 (paymentConfirmedAt 기준)
@@ -2679,8 +2683,12 @@ function renderDashboard(){
 // ISSUE READY (계산서 발행 대기)
 // ══════════════════════════════════════════
 function renderIssueReady(){
-  // 발행 실패 건도 포함 (payment-confirmed/pre-issue 상태이면서 issueFailedAt 있는 건)
-  var list=state.invoices.filter(function(i){return i.status==='payment-confirmed'||i.status==='pre-issue'||i.status==='issue-failed';});
+  // ✅ 발행 완료된 건은 무조건 제외 (status=issued이거나 preIssued+txId 있는 선발행 건)
+  var list=state.invoices.filter(function(i){
+    if(i.status==='issued') return false;                          // 발행완료 제외
+    if(i.preIssued && i.txId && i.txId!=='정산완료') return false; // 선발행 완료 제외
+    return i.status==='payment-confirmed'||i.status==='pre-issue'||i.status==='issue-failed';
+  });
   var tbody=$('issueReadyTbody'); if(!tbody)return;
   tbody.innerHTML=list.length?list.map(function(inv){
     var dueHtml='-';
@@ -3936,6 +3944,14 @@ function openIssueModal(id){
   pendingIssueId=id;
   const inv=state.invoices.find(x=>x.id===id); if(!inv)return;
 
+  // 🔒 최우선 안전장치: status=issued 이거나 preIssued+txId 있으면 모달 열기 자체 차단
+  var alreadyDone = (inv.status==='issued') || (inv.preIssued && inv.txId && inv.txId!=='정산완료');
+  if(alreadyDone){
+    toast('⛔ 이미 발행된 계산서입니다. ('+inv.txId+')','error');
+    renderIssueReady(); // 대기열에서 즉시 제거
+    return;
+  }
+
   // 🔄 재시도: issue-failed 상태이면 실패 플래그 초기화 후 발행 허용
   if(inv.status === 'issue-failed') {
     inv.status = inv.preIssue ? 'pre-issue' : 'payment-confirmed';
@@ -4196,6 +4212,8 @@ async function confirmIssue(){
       // ══════════════════════════════════════════════
       // 🔒 안전장치 3: DB 저장 확인 후 닫기
       // ══════════════════════════════════════════════
+      // ✅ 발행 성공 즉시 대기열에서 제거 (DB 저장 전에 먼저 화면 갱신)
+      renderIssueReady();
       saveState();
       var _apiInv=state.invoices.find(function(i){return i.id===pendingIssueId;});
       if(_apiInv) {
