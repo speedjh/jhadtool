@@ -4150,6 +4150,65 @@ async function confirmIssue(){
     // CK는 있으나 조회 실패 → 기존 CK로 진행 유지
   }
   try{
+    // ══════════════════════════════════════════════════════════════════
+    // 🔒 중복발행 방지: 발행 요청 전 localStorage에 "발행 시도 중" 마킹
+    // 네트워크 오류로 응답 미수신 시 재시도 전에 볼타 서버 상태 먼저 확인
+    // ══════════════════════════════════════════════════════════════════
+    var _issueAttemptKey = 'bolta_issue_attempt_' + pendingIssueId;
+    var _prevAttempt = null;
+    try { _prevAttempt = JSON.parse(localStorage.getItem(_issueAttemptKey)||'null'); } catch(e){}
+
+    // 이전 시도가 있으면 (응답 미수신 가능성) → 볼타에서 먼저 조회
+    if(_prevAttempt && _prevAttempt.attemptedAt) {
+      console.warn('[중복발행 방지] 이전 발행 시도 감지:', _prevAttempt);
+      ae.innerHTML='<div class="alert alert-info" style="font-size:13px">⏳ 이전 발행 요청 확인 중... 볼타 서버를 조회합니다.</div>';
+      // 볼타 목록에서 동일 사업자번호+날짜 조회는 불가능하므로
+      // 이전 시도의 issuanceKey가 있으면 해당 건 조회
+      if(_prevAttempt.issuanceKey) {
+        try {
+          var _chkR = await fetch('/api/bolta-proxy',{method:'POST',headers:{'Content-Type':'application/json'},
+            body:JSON.stringify({apiKey:_dbgApiKey,customerKey:_dbgCK,env:_dbgEnv,method:'GET',
+              path:'/v1/taxInvoices/'+_prevAttempt.issuanceKey})});
+          var _chkD = await _chkR.json();
+          var _chkOk = _chkR.ok && _chkD && !_chkD.type && !_chkD.code;
+          if(_chkOk) {
+            // 볼타에 이미 있음 → DB 업데이트 후 완료 처리
+            console.log('[중복발행 방지] 볼타에 이미 발행됨, DB 업데이트:', _prevAttempt.issuanceKey);
+            inv.status='issued';
+            inv.txId=_prevAttempt.issuanceKey;
+            inv.issuedAt=_prevAttempt.attemptedAt;
+            if(inv.preIssue) inv.preIssued=true;
+            inv.ntsConfirmNum=_chkD.ntsConfirmNum||_chkD.confirmNum||null;
+            localStorage.removeItem(_issueAttemptKey);
+            autoCreateReceivable(inv);
+            saveState();
+            await dbSaveInvoice(inv);
+            renderIssueReady(); renderAll();
+            ae.innerHTML='<div class="alert alert-success">✅ 이미 발행된 계산서입니다. DB에 업데이트했습니다.<br><small>issuanceKey: '+_prevAttempt.issuanceKey+'</small></div>';
+            btn.textContent='발행 완료 ✓';
+            _isIssuingInProgress=false;
+            _modalCloseBtns.forEach(function(b){ b.disabled=false; b.style.pointerEvents=''; b.style.opacity=''; });
+            setTimeout(()=>closeModal('issueModal'),2000);
+            return;
+          }
+        } catch(chkErr){ console.warn('[중복발행 방지] 조회 오류:', chkErr.message); }
+      }
+      // 조회 실패 or issuanceKey 없음 → 발행 전 경고
+      ae.innerHTML='<div class="alert alert-error" style="font-size:13px">⚠️ 이전 발행 요청의 결과를 확인할 수 없습니다.<br>볼타 대시보드에서 중복 발행 여부를 먼저 확인하세요.<br><small style="color:var(--text3)">확인 후 이상이 없으면 다시 클릭하세요.</small></div>';
+      // 이전 시도 기록 삭제 (재시도 허용 - 한 번 경고 후)
+      localStorage.removeItem(_issueAttemptKey);
+      _resetIssueUI('⚠ 확인 후 재시도');
+      return;
+    }
+
+    // 발행 시도 마킹 (응답 수신 전까지 유지)
+    localStorage.setItem(_issueAttemptKey, JSON.stringify({
+      attemptedAt: new Date().toISOString().replace('T',' ').substring(0,16),
+      invoiceId: pendingIssueId,
+      clientOrg: inv.client.org,
+      issuanceKey: null
+    }));
+
     // NOT_FOUND 시 test 환경으로 자동 재시도 (한 번만)
     async function callBoltaIssue(envToUse) {
       return fetch('/api/bolta-proxy',{
@@ -4190,6 +4249,8 @@ async function confirmIssue(){
       console.log('[볼타 발행 성공 전체응답]', JSON.stringify(data));
       inv.issuedAt=new Date().toISOString().replace('T',' ').substring(0,16);
       inv.txId=data.issuanceKey||data.id||data.taxInvoiceId||'OK';
+      // ✅ 발행 성공 → localStorage 마킹 제거 (중복발행 방지 해제)
+      localStorage.removeItem(_issueAttemptKey);
       // 국세청 승인번호 저장 (볼타 응답에 포함된 경우)
       inv.ntsConfirmNum = data.ntsConfirmNum||data.confirmNum||data.ntcNum||null;
       if(inv.preIssue){
@@ -4242,6 +4303,8 @@ async function confirmIssue(){
       inv.issueFailReason = failMsg.replace(/<[^>]*>/g,'').substring(0,120);
       saveState(); dbSaveInvoice(inv);
       console.warn('[발행 실패] status=issue-failed 저장:', inv.id, inv.issueFailReason);
+      // ✅ 발행 실패(API 오류) → localStorage 마킹 제거
+      try{ localStorage.removeItem(_issueAttemptKey); }catch(e){}
       _resetIssueUI();
     }
   }catch(e){
@@ -4256,6 +4319,8 @@ async function confirmIssue(){
         saveState(); dbSaveInvoice(_fInv);
       }
     } catch(e3){}
+    // ✅ 예외 발생 → localStorage 마킹 제거
+    try{ localStorage.removeItem(_issueAttemptKey); }catch(ex){}
     try{ _resetIssueUI(); } catch(e2){ _isIssuingInProgress=false; if(btn){ btn.disabled=false; btn.textContent=' 세금계산서 발행'; } }
   }
 }
