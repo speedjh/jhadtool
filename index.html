@@ -4039,24 +4039,38 @@ async function confirmIssue(){
   if(!sup.bizno||!sup.org||!sup.rep){ae.innerHTML='<div class="alert alert-error"> 공급자 정보를 설정해주세요.</div>';_resetIssueUI();return;}
   // 거래처 정보에서 주소/업태/종목 가져오기
   var clientInfo = state.clients.find(function(cl){ return cl.bizno && cl.bizno.replace(/-/g,'')===inv.client.bizno.replace(/-/g,''); }) || {};
+  // Bolta API: 빈 문자열('')은 오류 → null 또는 생략해야 함
+  var _supManagerEmail = sup.email && sup.email.trim() ? sup.email.trim() : null;
+  var _cliEmail        = inv.client.email && inv.client.email.trim() ? inv.client.email.trim() : null;
+  var _cliContactName  = clientInfo.contactName && clientInfo.contactName.trim() ? clientInfo.contactName.trim() : null;
+  // manager 객체: 이메일이 없으면 null (빈 객체 전달 금지)
+  var _supManager = _supManagerEmail ? {email:_supManagerEmail} : null;
+  // managers 배열: name이 비어있으면 null, 이메일·이름 모두 없으면 빈 배열
+  var _cliManagers = [];
+  if(_cliEmail || _cliContactName){
+    _cliManagers = [{
+      email: _cliEmail,
+      name:  _cliContactName
+    }];
+  }
   const payload={date:inv.date,purpose:'RECEIPT',
     supplier:{
       identificationNumber:sup.bizno.replace(/-/g,''),
       organizationName:sup.org,
       representativeName:sup.rep,
-      manager:{email:sup.email||''},
-      address:sup.address||'',
-      businessType:sup.bizType||'',
-      businessItem:sup.bizItem||''
+      manager:_supManager,
+      address:sup.address||null,
+      businessType:sup.bizType||null,
+      businessItem:sup.bizItem||null
     },
     supplied:{
       identificationNumber:inv.client.bizno.replace(/-/g,''),
       organizationName:inv.client.org,
       representativeName:inv.client.rep,
-      managers:[{email:inv.client.email||'', name:clientInfo.contactName||''}],
-      address:clientInfo.address||inv.client.address||'',
-      businessType:clientInfo.bizType||'',
-      businessItem:clientInfo.bizItem||''
+      managers:_cliManagers,
+      address:clientInfo.address||inv.client.address||null,
+      businessType:clientInfo.bizType||null,
+      businessItem:clientInfo.bizItem||null
     },
     items:inv.items.map(it=>({date:inv.date,name:it.name,unitPrice:it.unitPrice,quantity:it.quantity,supplyCost:it.supplyCost,tax:it.tax}))
   };
