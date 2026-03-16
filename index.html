@@ -2905,100 +2905,59 @@ async function openInvoicePreview(id) {
   var clientInfo = state.clients.find(function(cl){ return cl.bizno && inv.client && inv.client.bizno && cl.bizno.replace(/-/g,'')===inv.client.bizno.replace(/-/g,''); }) || {};
   var isNoTax = inv.taxIssue === false;
 
-  // 볼타 발행건이면 실제 API로 조회 (5초 타임아웃, 실패 시 로컬 데이터로 fallback)
+  // 볼타 조회는 백그라운드에서만 (국세청 승인번호·CANCELLED 감지 용도)
+  // 화면은 항상 즉시 로컬 데이터로 렌더링
   var boltaData = null;
-  var issuanceKey = inv.txId && inv.txId !== '정산완료' && inv.txId !== 'OK' ? inv.txId : null;
+  var issuanceKey = inv.txId && inv.txId !== '정산완료' && inv.txId !== 'OK' && inv.txId !== 'BOLTA_CONFIRM_NEEDED' ? inv.txId : null;
   if(issuanceKey && !isNoTax && state.settings.apiKey && state.settings.customerKey) {
-    $('invoicePreviewContent').innerHTML = '<div style="text-align:center;padding:60px;color:var(--text3)">볼타에서 계산서 불러오는 중...<br><small style="font-size:11px;margin-top:8px;display:block">최대 5초 대기 후 로컬 데이터로 표시됩니다</small></div>';
-    openModal('invoicePreviewModal');
-    try {
-      // 5초 타임아웃 - AbortController 사용
-      var _abortCtrl = new AbortController();
-      var _timeoutId = setTimeout(function(){ _abortCtrl.abort(); }, 5000);
-      var r = await fetch('/api/bolta-proxy', {
-        method: 'POST',
-        headers: {'Content-Type':'application/json'},
-        signal: _abortCtrl.signal,
-        body: JSON.stringify({
-          apiKey: state.settings.apiKey,
-          customerKey: state.settings.customerKey,
-          env: state.settings.env || 'test',
-          method: 'GET',
-          path: '/v1/taxInvoices/' + issuanceKey
-        })
-      });
-      clearTimeout(_timeoutId);
-      var d = await r.json();
-      // 성공 조건: HTTP OK + 에러코드 없음
-      var hasErr = d && (d.code || d.type === 'ERROR' || (d.body && d.body.code));
-      if(r.ok && d && !hasErr) {
-        boltaData = d;
-        console.log('[볼타 조회 성공]', JSON.stringify(d).substring(0,200));
-        // 볼타 상태 & 국세청 승인번호 → 변경 시 저장 (행 배지 갱신용)
-        var fetchedNts = d.ntsConfirmNum || d.confirmNum || d.ntcNum || null;
-        var changed = false;
-        if(fetchedNts && fetchedNts !== inv.ntsConfirmNum) { inv.ntsConfirmNum = fetchedNts; changed = true; }
-        if(d.status && d.status !== inv.boltaStatus) { inv.boltaStatus = d.status; changed = true; }
-        // 🔴 케이스2: 볼타 상태가 CANCELLED → issue-failed로 전환
-        if(d.status === 'CANCELLED' && inv.status === 'issued') {
-          inv.status = 'issue-failed';
-          inv.issueFailedAt = inv.issueFailedAt || new Date().toISOString().replace('T',' ').substring(0,16);
-          inv.issueFailReason = '볼타 국세청 전송 실패 (CANCELLED)';
-          changed = true;
-          toast('⚠️ 국세청 전송 실패(CANCELLED) 감지 - 발행 대기로 이동됩니다', 'error');
-          console.warn('[볼타 CANCELLED] issue-failed 전환:', inv.id);
+    (async function _boltaBgCheck() {
+      try {
+        var _ac = new AbortController();
+        setTimeout(function(){ _ac.abort(); }, 5000);
+        var r = await fetch('/api/bolta-proxy', {
+          method: 'POST', signal: _ac.signal,
+          headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({
+            apiKey: state.settings.apiKey, customerKey: state.settings.customerKey,
+            env: state.settings.env || 'test', method: 'GET',
+            path: '/v1/taxInvoices/' + issuanceKey
+          })
+        });
+        var d = await r.json();
+        var hasErr = d && (d.code || d.type === 'ERROR' || (d.body && d.body.code));
+        if(r.ok && d && !hasErr) {
+          var fetchedNts = d.ntsConfirmNum || d.confirmNum || d.ntcNum || null;
+          var changed = false;
+          if(fetchedNts && fetchedNts !== inv.ntsConfirmNum) { inv.ntsConfirmNum = fetchedNts; changed = true; }
+          if(d.status && d.status !== inv.boltaStatus) { inv.boltaStatus = d.status; changed = true; }
+          if(d.status === 'CANCELLED' && inv.status === 'issued') {
+            inv.status = 'issue-failed';
+            inv.issueFailedAt = inv.issueFailedAt || new Date().toISOString().replace('T',' ').substring(0,16);
+            inv.issueFailReason = '볼타 국세청 전송 실패 (CANCELLED)';
+            changed = true;
+            toast('⚠️ 국세청 전송 실패(CANCELLED) 감지 - 발행 대기로 이동됩니다', 'error');
+          }
+          if(changed) { saveState(); dbSaveInvoice(inv); renderAll(); }
         }
-        if(changed) {
-          saveState();
-          dbSaveInvoice(inv);
-          console.log('[볼타 조회] 저장:', {nts: fetchedNts, status: d.status});
-        }
-      } else {
-        var errCode = (d && d.code) || (d && d.body && d.body.code) || '';
-        console.warn('[볼타 조회 실패] 로컬 데이터로 표시. 코드:', errCode, d);
-        // 조회 불가 상태 → 로컬 데이터로 계속 진행 (boltaData=null 유지)
-      }
-    } catch(e) {
-      if(e.name === 'AbortError') {
-        console.warn('[볼타 조회] 5초 타임아웃 → 로컬 데이터로 표시');
-      } else {
-        console.warn('[볼타 조회 오류]', e.message);
-      }
-      // 어떤 오류든 boltaData=null 유지 → 로컬 데이터로 fallback
-    }
+      } catch(e) { /* 백그라운드 조회 실패 무시 */ }
+    })();
   }
 
-  // 볼타 데이터가 있으면 그 데이터로, 없으면 로컬 데이터로 렌더링
-  var renderSup    = boltaData ? boltaData.supplier  : null;
-  var renderClient = boltaData ? boltaData.supplied  : null;
-  var renderItems  = (boltaData && boltaData.items && boltaData.items.length) ? boltaData.items : (inv.items || []);
-  var renderDate   = boltaData ? (boltaData.date||boltaData.issuedAt||inv.issuedAt||inv.date) : (inv.issuedAt||inv.date||'-');
-  var renderDesc   = boltaData ? boltaData.description : inv.memo;
-
-  // renderItems 방어 (빈 배열이면 로컬 items 사용)
-  if(!renderItems || !renderItems.length) renderItems = inv.items || [];
+  // 항상 로컬 데이터로 렌더링 (볼타 조회는 백그라운드 전용)
+  var renderItems = inv.items || [];
+  var renderDate  = inv.issuedAt || inv.date || '-';
+  var renderDesc  = inv.memo;
 
   var supply = renderItems.reduce(function(s,i){return s+(i.supplyCost||0);},0);
   var tax    = renderItems.reduce(function(s,i){return s+(i.tax||0);},0);
   var total  = isNoTax ? supply : supply + tax;
   var typeLabel = isNoTax ? '거래명세서' : '세금계산서';
 
-  // 볼타 발행 상태 배지
-  var boltaStatusBadge = '';
-  if(boltaData && boltaData.status) {
-    var statusMap = {ISSUED:'✅ 발행완료', PENDING:'⏳ 처리중', CANCELLED:'❌ 취소됨'};
-    boltaStatusBadge = '<span style="font-size:12px;background:#d1fae5;color:#065f46;padding:3px 10px;border-radius:20px;margin-left:10px">'+(statusMap[boltaData.status]||boltaData.status)+'</span>';
-  } else if(issuanceKey && !boltaData) {
-    boltaStatusBadge = '<span style="font-size:11px;color:#aaa;margin-left:8px">(볼타 조회 불가 - 로컬 데이터)</span>';
-  }
-
   // 국세청 승인번호만 표시 (볼타 발행키는 거래처 노출 금지)
-  var ntsNum = (boltaData && (boltaData.ntsConfirmNum||boltaData.confirmNum||boltaData.ntcNum)) || inv.ntsConfirmNum || null;
-  var txIdRow = '';
-  if(ntsNum) {
-    txIdRow = '<div style="margin-top:6px;font-size:12px;color:#666">국세청 승인번호: <strong>' + ntsNum + '</strong>' + boltaStatusBadge + '</div>';
-  }
-  // txIdRow: 발행키는 절대 표시 안 함
+  var ntsNum = inv.ntsConfirmNum || null;
+  var txIdRow = ntsNum
+    ? '<div style="margin-top:6px;font-size:12px;color:#666">국세청 승인번호: <strong>' + ntsNum + '</strong></div>'
+    : '';
 
   var itemRows = renderItems.map(function(it, i) {
     return '<tr>'
@@ -3011,23 +2970,23 @@ async function openInvoicePreview(id) {
       + '</tr>';
   }).join('');
 
-  // 공급자 정보 (볼타 데이터 우선)
-  var supOrg   = (renderSup && renderSup.organizationName) || sup.org || '-';
-  var supBizno = (renderSup && renderSup.identificationNumber) || sup.bizno || '-';
-  var supRep   = (renderSup && renderSup.representativeName)   || sup.rep  || '-';
-  var supEmail = (renderSup && renderSup.manager && renderSup.manager.email) || sup.email || '-';
-  var supAddr  = (renderSup && renderSup.address) || sup.address || '';
-  var supBizT  = (renderSup && renderSup.businessType) || sup.bizType || '';
-  var supBizI  = (renderSup && renderSup.businessItem) || sup.bizItem || '';
+  // 공급자 정보
+  var supOrg   = sup.org || '-';
+  var supBizno = sup.bizno || '-';
+  var supRep   = sup.rep  || '-';
+  var supEmail = sup.email || '-';
+  var supAddr  = sup.address || '';
+  var supBizT  = sup.bizType || '';
+  var supBizI  = sup.bizItem || '';
 
   // 공급받는자 정보 (볼타 데이터 우선)
-  var cliOrg   = (renderClient && renderClient.organizationName) || inv.client.org || '-';
-  var cliBizno = (renderClient && renderClient.identificationNumber) || inv.client.bizno || '-';
-  var cliRep   = (renderClient && renderClient.representativeName)   || inv.client.rep  || '-';
-  var cliEmail = (renderClient && renderClient.managers && renderClient.managers[0] && renderClient.managers[0].email) || inv.client.email || '-';
-  var cliAddr  = (renderClient && renderClient.address) || clientInfo.address || inv.client.address || '';
-  var cliBizT  = (renderClient && renderClient.businessType) || clientInfo.bizType || '';
-  var cliBizI  = (renderClient && renderClient.businessItem) || clientInfo.bizItem || '';
+  var cliOrg   = inv.client.org || '-';
+  var cliBizno = inv.client.bizno || '-';
+  var cliRep   = inv.client.rep  || '-';
+  var cliEmail = inv.client.email || '-';
+  var cliAddr  = clientInfo.address || inv.client.address || '';
+  var cliBizT  = clientInfo.bizType || '';
+  var cliBizI  = clientInfo.bizItem || '';
 
   // 국세청 승인번호 박스 (이미지 저장 시 잘 보이도록 강조 / 볼타 발행키는 표시 안 함)
   var ntsBox = ntsNum
