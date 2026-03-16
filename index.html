@@ -49,6 +49,7 @@
     --red-light: #FEF0F1;
     --orange: #F07938;
     --orange-dim: rgba(240,121,56,0.08);
+    --transfer-in-amount: #111;
 
     /* ── 레이아웃 ── */
     --radius: 12px;
@@ -87,6 +88,7 @@
     --yellow-dim: rgba(245,200,66,0.1);
     --yellow-light: rgba(245,200,66,0.1);
     --red: #FF6B7A;
+    --transfer-in-amount: #39FF6E;
     --red-dim: rgba(255,107,122,0.1);
     --red-light: rgba(255,107,122,0.1);
     --shadow-sm: 0 1px 3px rgba(0,0,0,.1);
@@ -733,6 +735,9 @@
   .transfer-card.already-matched { border-color: var(--green); background: var(--green-light); opacity: .7; pointer-events: none; }
   .match-badge { display: none; font-size: 10px; background: var(--yellow-dim); color: var(--yellow); padding: 2px 7px; border-radius: 5px; margin-left: 6px; font-weight: 700; }
   .transfer-card.selected-transfer { border-color: var(--accent); background: var(--accent-light); box-shadow: 0 0 0 2px var(--accent-dim); }
+
+  /* ── 이체 입금 금액 셀: 다크모드 형광 초록 ── */
+  .transfer-amount-cell { color: var(--transfer-in-amount); }
 
   /* ════════════════════════════════
      MISC
@@ -4671,7 +4676,7 @@ function renderTransfers(){
     return '<tr>'
       +'<td style="color:var(--text3)">'+(t.datetime||t.date||'-')+'</td>'
       +'<td><strong>'+(t.sender||t.description||'-')+'</strong></td>'
-      +'<td style="font-family:\'Pretendard\',sans-serif;font-weight:700;font-size:15px;color:#111">'+amtText+'</td>'
+      +'<td class="transfer-amount-cell" style="font-family:\'Pretendard\',sans-serif;font-weight:700;font-size:15px">'+amtText+'</td>'
       +'<td style="color:var(--text3)">'+(t.bank||'-')+(t.account?' ****'+String(t.account).slice(-4):'')+'</td>'
       +'<td style="color:var(--text3);font-size:12px">'+(t.memo||'-')+'</td>'
       +'<td>'+matchCell+'</td>'
