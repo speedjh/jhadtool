@@ -5313,30 +5313,22 @@ async function confirmIssue(){
           btn.textContent='발행 완료 ✓'; toast('발행 완료! 미수금 자동 등록됨','success');
         }
       }
-      // ══════════════════════════════════════════════
-      // 🔒 안전장치 3: DB 저장 확인 후 닫기
-      // ══════════════════════════════════════════════
-      // ✅ 발행 성공 즉시 대기열에서 제거 (DB 저장 전에 먼저 화면 갱신)
-      // ✅ 발행 성공 즉시 상태 확정 + DB 저장
+      // ✅ 1단계: 로컬 저장 + 즉시 화면 갱신 (DB 응답 기다리지 않음)
       saveState();
-      var _apiInv=state.invoices.find(function(i){return i.id===pendingIssueId;});
-      if(_apiInv) {
-        try {
-          await dbSaveInvoice(_apiInv);
-          console.log('[발행 완료] DB 저장 완료:', _apiInv.id, _apiInv.txId);
-        } catch(dbErr) {
-          console.error('[발행 완료] DB 저장 오류 (로컬은 저장됨):', dbErr);
-        }
-      }
-      var _ar=state.receivables.find(function(r){return r.invoiceId===(_apiInv&&_apiInv.id);});
-      if(_ar) { try { await dbSaveReceivable(_ar); } catch(e){} }
-      // ✅ DB 저장 완료 후 화면 갱신 (순서 중요: 저장 후 렌더링)
-      renderIssueReady();
+      renderIssueReady();   // ← 발행 성공 즉시 대기열에서 제거
       renderAll();
       _isIssuingInProgress=false; // 🔓 플래그 해제
-      // 닫기 버튼 복원
       _modalCloseBtns.forEach(function(b){ b.disabled=false; b.style.pointerEvents=''; b.style.opacity=''; });
       setTimeout(()=>closeModal('issueModal'),1800);
+      // ✅ 2단계: DB 저장은 백그라운드 (화면 블로킹 없음)
+      var _apiInv=state.invoices.find(function(i){return i.id===pendingIssueId;});
+      if(_apiInv) {
+        dbSaveInvoice(_apiInv)
+          .then(function(){ console.log('[발행 완료] DB 저장 완료:', _apiInv.id, _apiInv.txId); })
+          .catch(function(dbErr){ console.error('[발행 완료] DB 저장 오류 (로컬은 저장됨):', dbErr); });
+      }
+      var _ar=state.receivables.find(function(r){return r.invoiceId===(_apiInv&&_apiInv.id);});
+      if(_ar) { dbSaveReceivable(_ar).catch(function(e){ console.error('[미수금 DB 저장 오류]', e); }); }
     } else {
       // Bolta 에러 상세 메시지 추출
       var failMsg = errMsg || JSON.stringify(data);
