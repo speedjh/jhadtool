@@ -3911,7 +3911,7 @@ function renderHistory(){
     var dateCell=isSettle2?(inv.paymentConfirmedAt||inv.issuedAt||'-'):(inv.issuedAt||inv.createdAt||'-').substring(0,16);
 
     var dlBtn='<button class="btn btn-ghost btn-sm" style="padding:5px 8px;font-size:11px" onclick="event.stopPropagation();openInvoicePreview(\''+inv.id+'\')" title="미리보기/저장">🔍 미리보기</button>';
-    return '<tr style="cursor:pointer" onclick="openInvoicePreview(\''+inv.id+'\')">'
+    return '<tr class="hist-preview-row" style="cursor:pointer" data-preview-id="'+inv.id+'">'
       +'<td>'+typeBadge+'</td>'
       +'<td><strong>'+inv.client.org+'</strong></td>'
       +'<td>'+managerChip(inv.managerName||'')+'</td>'
@@ -5317,9 +5317,9 @@ async function confirmIssue(){
       saveState();
       renderIssueReady();   // ← 발행 성공 즉시 대기열에서 제거
       renderAll();
-      _isIssuingInProgress=false; // 🔓 플래그 해제
+      _isIssuingInProgress=false; // 🔓 플래그 해제 (즉시 - 다음 발행 바로 가능)
       _modalCloseBtns.forEach(function(b){ b.disabled=false; b.style.pointerEvents=''; b.style.opacity=''; });
-      setTimeout(()=>closeModal('issueModal'),1800);
+      closeModal('issueModal'); // ← 즉시 닫기 (1800ms 딜레이 제거 → 연속발행 지원)
       // ✅ 2단계: DB 저장은 백그라운드 (화면 블로킹 없음)
       var _apiInv=state.invoices.find(function(i){return i.id===pendingIssueId;});
       if(_apiInv) {
@@ -8563,6 +8563,12 @@ document.addEventListener('DOMContentLoaded', function() {
     // data-page navigation
     const pageEl = e.target.closest('[data-page]');
     if (pageEl) { showPage(pageEl.dataset.page); return; }
+
+    // 처리이력 프리뷰 행 클릭 (clickable-row보다 먼저 체크)
+    if(!e.target.closest('button')){
+      var prevRow=e.target.closest('.hist-preview-row');
+      if(prevRow&&prevRow.dataset.previewId){ openInvoicePreview(prevRow.dataset.previewId); return; }
+    }
 
     // clickable-row (이체 확인 대기 행 클릭 → 상세 패널)
     if(!e.target.closest('button')){
