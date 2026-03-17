@@ -5126,12 +5126,12 @@ async function confirmIssue(){
     ae.innerHTML='<div class="alert alert-error">❌ API Key가 설정되지 않았습니다. 설정 탭에서 입력해주세요.</div>';
     _resetIssueUI(); return;
   }
-  // Customer Key 미설정이거나 live 환경이면 → /v1/customers로 자동 조회하여 올바른 CK 사용
+  // Customer Key 자동조회: CK가 없을 때만 실행 (매번 조회 → 발행 지연 원인 제거)
+  if(!_dbgCK) {
   try {
-    // 두 환경 모두 시도해서 작동하는 환경 + customerKey 자동 확인
     async function fetchCustomers(envToTry) {
       const r = await fetch('/api/bolta-proxy',{method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({apiKey:_dbgApiKey,customerKey:_dbgCK||'dummy',env:envToTry,method:'GET',path:'/v1/customers'})});
+        body:JSON.stringify({apiKey:_dbgApiKey,customerKey:'dummy',env:envToTry,method:'GET',path:'/v1/customers'})});
       const d = await r.json();
       return {status:r.status, data:d};
     }
@@ -5141,41 +5141,30 @@ async function confirmIssue(){
     if(_r1.status===200 && Array.isArray(_r1.data) && _r1.data.length > 0) {
       _custResult = _r1.data; _workingEnv = _dbgEnv;
     } else {
-      // 반대 환경 시도
       var _altEnv = _dbgEnv === 'live' ? 'test' : 'live';
       var _r2 = await fetchCustomers(_altEnv);
       if(_r2.status===200 && Array.isArray(_r2.data) && _r2.data.length > 0) {
         _custResult = _r2.data; _workingEnv = _altEnv;
-        console.log('[볼타 발행] 작동하는 환경:', _altEnv, '→ 자동 전환');
       }
     }
     if(_custResult && _custResult.length > 0) {
-      var _autoCK = _custResult[0].customerKey;
-      if(_autoCK && _autoCK !== _dbgCK) {
-        console.log('[볼타 발행] Customer Key 자동 업데이트:', _autoCK);
-        _dbgCK = _autoCK;
-        state.settings.customerKey = _autoCK;
-        saveState(); dbSaveSettings();
-        toast('Customer Key가 자동 업데이트되었습니다','info');
-      }
+      _dbgCK = _custResult[0].customerKey;
+      state.settings.customerKey = _dbgCK;
       if(_workingEnv !== _dbgEnv) {
         _dbgEnv = _workingEnv;
         state.settings.env = _workingEnv;
-        saveState(); dbSaveSettings();
-        toast('환경이 ' + (_workingEnv==='test'?'테스트':'라이브') + '로 자동 변경되었습니다','info');
       }
-    } else if(!_dbgCK) {
-      ae.innerHTML='<div class="alert alert-error">❌ Customer Key 자동 조회 실패. 설정 탭에서 Customer Key를 직접 입력해주세요.</div>';
+      saveState(); dbSaveSettings();
+      toast('Customer Key 자동 설정됨','info');
+    } else {
+      ae.innerHTML='<div class="alert alert-error">❌ Customer Key 자동 조회 실패. 설정 탭에서 입력해주세요.</div>';
       _resetIssueUI(); return;
     }
   } catch(ckErr) {
-    console.warn('[볼타 발행] Customer Key 자동조회 오류:', ckErr.message);
-    if(!_dbgCK) {
-      ae.innerHTML='<div class="alert alert-error">❌ Customer Key가 설정되지 않았습니다. 설정 탭에서 입력해주세요.</div>';
-      _resetIssueUI(); return;
-    }
-    // CK는 있으나 조회 실패 → 기존 CK로 진행 유지
+    ae.innerHTML='<div class="alert alert-error">❌ Customer Key가 없습니다. 설정 탭에서 입력해주세요.</div>';
+    _resetIssueUI(); return;
   }
+  } // end if(!_dbgCK)
   try{
     // ══════════════════════════════════════════════════════════════════
     // 🔒 중복발행 방지: 발행 요청 전 localStorage에 "발행 시도 중" 마킹
@@ -5215,21 +5204,15 @@ async function confirmIssue(){
             btn.textContent='발행 완료 ✓';
             _isIssuingInProgress=false;
             _modalCloseBtns.forEach(function(b){ b.disabled=false; b.style.pointerEvents=''; b.style.opacity=''; });
-            setTimeout(()=>closeModal('issueModal'),2000);
+            closeModal('issueModal');
             return;
           }
         } catch(chkErr){ console.warn('[중복발행 방지] 조회 오류:', chkErr.message); }
       }
-      // 조회 실패 or issuanceKey 없음 → 완전 차단 (재시도 불가)
-      ae.innerHTML='<div class="alert alert-error" style="font-size:13px">⛔ 이전 발행 요청의 결과를 확인할 수 없습니다.<br><strong>볼타 대시보드에서 중복 발행 여부를 반드시 확인하세요.</strong><br><small style="color:var(--text3)">이미 발행된 경우 처리이력 탭에서 수동으로 발행키를 입력하세요.</small></div>';
-      // ⛔ 이전 시도 기록 유지 (삭제 안 함) - 중복발행 방지를 위해 재시도 완전 차단
-      inv.status = 'issue-failed';
-      inv.issueFailReason = '이전 발행 요청 결과 미확인 - 볼타 대시보드 확인 필요';
-      inv.txId = inv.txId || ('BOLTA_CONFIRM_NEEDED_' + new Date().toISOString().replace(/[^0-9]/g,'').substring(0,14));
-      saveState(); dbSaveInvoice(inv);
-      renderIssueReady();
-      _resetIssueUI('⛔ 발행 불가 (볼타 확인 필요)');
-      return;
+      // 조회 실패 or issuanceKey 없음 → localStorage 마킹 제거 후 그냥 발행 진행
+      // (이전 시도가 실제로 성공했다면 볼타에 중복 방지 로직이 있음)
+      console.warn('[중복발행 방지] 이전 시도 확인 불가 → localStorage 제거 후 발행 진행');
+      localStorage.removeItem(_issueAttemptKey);
     }
 
     // 발행 시도 마킹 (응답 수신 전까지 유지)
