@@ -543,226 +543,223 @@
   .badge-gray   { background: var(--surface2); color: var(--text3); }
 
   /* ═══════════════════════════════════════════════
-     매출 분석 — TOSS STYLE REDESIGN v2
-     토스 색상 팔레트: Blue #3182F6, Grey #F2F4F6
-     참고: tossmini-docs.toss.im/tds-mobile/
+     매출 분석 — TOSS STYLE REDESIGN v3
+     TDS Color System: Blue #3182F6, Grey #F2F4F6
+     토스 디자인 시스템 30+ 컴포넌트 학습 반영
+     참고: tossmini-docs.toss.im / toss.tech
   ═══════════════════════════════════════════════ */
 
-  /* 탭 네비게이션 — 토스 언더라인 스타일 */
+  /* 탭 네비게이션 — 토스 TDS 언더라인 스타일 */
   .an-tab-nav {
     display: flex; gap: 0; margin-bottom: 0;
-    border-bottom: 1px solid var(--border);
+    border-bottom: 1.5px solid var(--border);
   }
   .an-tab {
-    padding: 12px 20px; font-size: 14px; font-weight: 500;
+    padding: 14px 22px; font-size: 14px; font-weight: 500;
     border: none; background: transparent; color: var(--text3);
     cursor: pointer; white-space: nowrap; position: relative;
-    transition: color .18s;
+    transition: color .18s; letter-spacing: -.01em;
   }
   .an-tab::after {
-    content: ''; position: absolute; bottom: -1px; left: 0; right: 0;
-    height: 2px; background: var(--accent); border-radius: 2px 2px 0 0;
-    transform: scaleX(0); transition: transform .2s cubic-bezier(.4,0,.2,1);
+    content: ''; position: absolute; bottom: -1.5px; left: 0; right: 0;
+    height: 2.5px; background: var(--accent); border-radius: 3px 3px 0 0;
+    transform: scaleX(0); transition: transform .22s cubic-bezier(.4,0,.2,1);
   }
   .an-tab:hover { color: var(--text); }
   .an-tab.active { color: var(--accent); font-weight: 700; }
   .an-tab.active::after { transform: scaleX(1); }
   .an-tab-content { display: none; }
-  .an-tab-content.active { display: block; animation: anFadeIn .25s ease; }
-  @keyframes anFadeIn { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:none; } }
+  .an-tab-content.active { display: block; animation: anFadeIn .28s ease; }
+  @keyframes anFadeIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:none; } }
 
-  /* KPI 카드 — 토스 스타일 (심플 + 숫자 강조) */
+  /* KPI 카드 — 토스 TDS 스타일 (숫자 강조, 미니멀) */
   .an-kpi {
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 16px; padding: 22px 24px;
-    transition: box-shadow .2s, transform .2s;
+    border-radius: 20px; padding: 22px 22px 18px;
+    transition: box-shadow .22s, transform .22s;
     position: relative; overflow: hidden;
     cursor: default;
   }
-  .an-kpi:hover { box-shadow: 0 6px 24px rgba(0,0,0,0.09); transform: translateY(-2px); }
+  .an-kpi:hover { box-shadow: 0 8px 28px rgba(49,130,246,0.1); transform: translateY(-3px); }
   .an-kpi-icon {
-    width: 36px; height: 36px; border-radius: 10px;
+    width: 38px; height: 38px; border-radius: 12px;
     display: flex; align-items: center; justify-content: center;
-    font-size: 16px; margin-bottom: 14px; flex-shrink: 0;
+    font-size: 17px; margin-bottom: 16px; flex-shrink: 0;
   }
   .an-kpi-label {
     font-size: 12px; color: var(--text3); font-weight: 500;
-    margin-bottom: 6px; letter-spacing: .01em;
+    margin-bottom: 7px; letter-spacing: .02em;
   }
   .an-kpi-value {
-    font-size: 22px; font-weight: 800; color: var(--text);
-    font-feature-settings: "tnum"; letter-spacing: -0.6px;
+    font-size: 24px; font-weight: 800; color: var(--text);
+    font-feature-settings: "tnum"; letter-spacing: -0.8px;
     line-height: 1.15;
   }
   .an-kpi-sub {
-    font-size: 11px; color: var(--text3); margin-top: 6px;
-    line-height: 1.5;
+    font-size: 11px; color: var(--text3); margin-top: 8px;
+    line-height: 1.6; letter-spacing: .01em;
   }
   .an-kpi-delta-up   { color: var(--green); font-size: 11px; font-weight: 700; }
   .an-kpi-delta-down { color: var(--red);   font-size: 11px; font-weight: 700; }
 
-  /* 섹션 카드 — 토스 스타일 */
+  /* 섹션 카드 — 토스 TDS 카드 컴포넌트 */
   .an-card {
     background: var(--surface); border: 1px solid var(--border);
-    border-radius: 20px; padding: 24px;
+    border-radius: 24px; padding: 28px;
     margin-bottom: 16px;
   }
   .an-card-header {
     display: flex; align-items: flex-start; justify-content: space-between;
-    margin-bottom: 20px;
+    margin-bottom: 22px;
   }
   .an-card-title {
-    font-size: 15px; font-weight: 700; color: var(--text);
-    letter-spacing: -.01em; line-height: 1.3;
+    font-size: 16px; font-weight: 700; color: var(--text);
+    letter-spacing: -.02em; line-height: 1.3;
   }
   .an-card-sub {
-    font-size: 12px; color: var(--text3); margin-top: 3px;
+    font-size: 12px; color: var(--text3); margin-top: 4px; letter-spacing: .01em;
   }
 
-  /* 테이블 — 토스 스타일 */
+  /* 테이블 — 토스 리스트 스타일 */
   .an-table { width: 100%; border-collapse: collapse; font-size: 13px; }
   .an-table th {
-    padding: 10px 16px; text-align: left; font-size: 11px;
+    padding: 11px 16px; text-align: left; font-size: 11px;
     font-weight: 600; color: var(--text3); background: transparent;
-    border-bottom: 1px solid var(--border); white-space: nowrap;
-    letter-spacing: .03em; text-transform: uppercase;
+    border-bottom: 1.5px solid var(--border); white-space: nowrap;
+    letter-spacing: .04em; text-transform: uppercase;
   }
   .an-table td {
-    padding: 13px 16px; border-bottom: 1px solid var(--border);
+    padding: 14px 16px; border-bottom: 1px solid var(--border);
     color: var(--text2); font-size: 13px;
   }
   .an-table tr:last-child td { border-bottom: none; }
-  .an-table tbody tr { transition: background .1s; }
+  .an-table tbody tr { transition: background .12s; }
   .an-table tbody tr:hover td { background: var(--surface2); cursor: pointer; }
   .an-table .mono {
     font-feature-settings: "tnum"; text-align: right;
     font-variant-numeric: tabular-nums; font-size: 13px;
   }
-  .an-table .rank-1 { }
-  .an-table .rank-2 { }
-  .an-table .rank-3 { }
   .an-rank-badge {
     display: inline-flex; align-items: center; justify-content: center;
-    width: 22px; height: 22px; border-radius: 6px; font-size: 11px; font-weight: 800;
+    width: 24px; height: 24px; border-radius: 7px; font-size: 11px; font-weight: 800;
   }
-  .an-rank-badge.r1 { background: rgba(245,158,11,0.12); color: #d97706; }
+  .an-rank-badge.r1 { background: rgba(245,158,11,0.13); color: #d97706; }
   .an-rank-badge.r2 { background: rgba(148,163,184,0.15); color: #64748b; }
   .an-rank-badge.r3 { background: rgba(180,119,50,0.12); color: #92400e; }
   .an-rank-badge.rn { background: var(--surface2); color: var(--text3); }
 
-  /* 히트맵 — 토스 스타일 */
-  .an-heatmap-table { width: 100%; border-collapse: separate; border-spacing: 3px; font-size: 12px; }
+  /* 히트맵 — 토스 히트맵 스타일 */
+  .an-heatmap-table { width: 100%; border-collapse: separate; border-spacing: 4px; font-size: 12px; }
   .an-heatmap-table th {
-    padding: 6px 4px; font-size: 10px; font-weight: 600;
+    padding: 7px 4px; font-size: 10px; font-weight: 600;
     color: var(--text3); text-align: center; white-space: nowrap;
+    letter-spacing: .02em;
   }
   .an-heatmap-table td {
-    padding: 7px 4px; text-align: center; border-radius: 8px;
+    padding: 8px 4px; text-align: center; border-radius: 10px;
     font-size: 10px; font-weight: 700; cursor: pointer;
-    transition: transform .1s, opacity .1s;
-    min-width: 38px;
+    transition: transform .12s, opacity .12s;
+    min-width: 40px;
   }
-  .an-heatmap-table td:hover { transform: scale(1.08); opacity: .9; }
+  .an-heatmap-table td:hover { transform: scale(1.1); opacity: .88; }
 
-  /* 진행 바 */
+  /* 진행 바 — 토스 프로그레스 바 */
   .an-bar-wrap {
     background: var(--border); border-radius: 99px;
-    height: 4px; flex: 1; overflow: hidden;
+    height: 5px; flex: 1; overflow: hidden;
   }
   .an-bar-fill {
     height: 100%; border-radius: 99px;
-    transition: width .6s cubic-bezier(.4,0,.2,1);
+    transition: width .65s cubic-bezier(.4,0,.2,1);
   }
 
-  /* 담당자 행 */
+  /* 담당자 행 — 토스 리스트 아이템 */
   .an-mgr-row {
     display: flex; align-items: center; gap: 14px;
-    padding: 14px 0; border-bottom: 1px solid var(--border);
+    padding: 15px 0; border-bottom: 1px solid var(--border);
   }
   .an-mgr-row:last-child { border-bottom: none; padding-bottom: 0; }
   .an-mgr-avatar {
-    width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0;
+    width: 38px; height: 38px; border-radius: 50%; flex-shrink: 0;
     display: flex; align-items: center; justify-content: center;
     font-size: 13px; font-weight: 800; color: #fff;
   }
   .an-mgr-name { font-size: 14px; font-weight: 700; color: var(--text); }
-  .an-mgr-sub  { font-size: 12px; color: var(--text3); margin-top: 1px; }
+  .an-mgr-sub  { font-size: 12px; color: var(--text3); margin-top: 2px; }
   .an-mgr-amt  {
     font-size: 16px; font-weight: 800; color: var(--text);
-    font-feature-settings:"tnum"; letter-spacing:-.3px;
+    font-feature-settings:"tnum"; letter-spacing:-.4px;
     margin-left: auto; white-space: nowrap;
   }
-  .an-mgr-pct  { font-size: 11px; color: var(--text3); text-align: right; margin-top: 1px; white-space: nowrap; }
+  .an-mgr-pct  { font-size: 11px; color: var(--text3); text-align: right; margin-top: 2px; white-space: nowrap; }
 
-  /* 담당자 요약 카드 (일별 탭 상단) */
+  /* 담당자 요약 카드 (일별 탭 상단) — 토스 카드 스타일 */
   .an-mgr-card {
     background: var(--surface); border: 1px solid var(--border);
-    border-radius: 16px; padding: 18px 20px;
-    cursor: pointer; transition: box-shadow .18s, transform .15s;
+    border-radius: 20px; padding: 20px 22px;
+    cursor: pointer; transition: box-shadow .2s, transform .18s, border-color .15s;
   }
-  .an-mgr-card:hover { box-shadow: 0 6px 20px rgba(0,0,0,0.1); transform: translateY(-2px); }
+  .an-mgr-card:hover { box-shadow: 0 8px 24px rgba(49,130,246,0.12); transform: translateY(-3px); border-color: var(--accent); }
   .an-mgr-card-name {
     font-size: 13px; font-weight: 700; color: var(--text);
-    display: flex; align-items: center; gap: 7px; margin-bottom: 10px;
+    display: flex; align-items: center; gap: 8px; margin-bottom: 12px;
   }
   .an-mgr-card-dot {
     width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
   }
   .an-mgr-card-amt {
-    font-size: 21px; font-weight: 800; color: var(--text);
-    letter-spacing: -0.5px; margin-bottom: 4px;
+    font-size: 22px; font-weight: 800; color: var(--text);
+    letter-spacing: -0.6px; margin-bottom: 5px;
     font-feature-settings: "tnum";
   }
   .an-mgr-card-meta {
-    font-size: 11px; color: var(--text3);
+    font-size: 11px; color: var(--text3); letter-spacing: .01em;
   }
   .an-mgr-card-bar {
-    margin-top: 12px;
+    margin-top: 14px;
     background: var(--border); border-radius: 99px;
-    height: 3px; overflow: hidden;
+    height: 4px; overflow: hidden;
   }
   .an-mgr-card-bar-fill {
     height: 100%; border-radius: 99px;
-    transition: width .5s cubic-bezier(.4,0,.2,1);
+    transition: width .55s cubic-bezier(.4,0,.2,1);
   }
   .an-mgr-card-pct {
-    font-size: 10px; color: var(--text3);
-    text-align: right; margin-top: 4px;
+    font-size: 11px; color: var(--text3);
+    text-align: right; margin-top: 5px;
   }
 
-  /* 범례 */
+  /* 범례 — 토스 레전드 스타일 */
   .an-legend-item {
-    display: flex; align-items: center; gap: 6px;
+    display: flex; align-items: center; gap: 7px;
     font-size: 11px; color: var(--text3);
   }
   .an-legend-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; display: inline-block; }
-  .an-legend-line { width: 16px; height: 2.5px; border-radius: 2px; flex-shrink: 0; display: inline-block; }
+  .an-legend-line { width: 18px; height: 2.5px; border-radius: 2px; flex-shrink: 0; display: inline-block; }
 
-  /* 전월 대비 태그 */
+  /* 전월 대비 태그 — 토스 델타 배지 */
   .an-delta-tag {
     display: inline-flex; align-items: center; gap: 3px;
-    padding: 3px 8px; border-radius: 99px; font-size: 11px; font-weight: 700;
+    padding: 3px 9px; border-radius: 99px; font-size: 11px; font-weight: 700;
   }
   .an-delta-tag.up   { background: rgba(0,196,113,0.1); color: var(--green); }
   .an-delta-tag.down { background: rgba(240,68,82,0.1); color: var(--red); }
   .an-delta-tag.flat { background: var(--surface2); color: var(--text3); }
 
   /* 일별 차트 헤더 */
-  .an-chart-header {
-    margin-bottom: 20px;
-  }
+  .an-chart-header { margin-bottom: 22px; }
   .an-chart-total {
-    font-size: 28px; font-weight: 800; color: var(--text);
-    letter-spacing: -0.8px; line-height: 1.1;
+    font-size: 30px; font-weight: 800; color: var(--text);
+    letter-spacing: -1px; line-height: 1.1;
     font-feature-settings: "tnum";
   }
   .an-chart-change {
     font-size: 13px; color: var(--text3);
-    margin-top: 5px; display: flex; align-items: center; gap: 6px;
+    margin-top: 6px; display: flex; align-items: center; gap: 7px;
   }
 
-  /* 도넛 레전드 */
+  /* 도넛 레전드 — 토스 도넛 차트 범례 */
   .an-donut-legend { display: flex; flex-direction: column; gap: 10px; justify-content: center; }
   .an-donut-legend-item {
     display: flex; align-items: center; gap: 10px;
@@ -777,39 +774,100 @@
   /* 빈 상태 */
   .an-empty {
     display: flex; flex-direction: column; align-items: center;
-    justify-content: center; padding: 56px 24px; color: var(--text3);
-    font-size: 13px; gap: 10px;
+    justify-content: center; padding: 60px 24px; color: var(--text3);
+    font-size: 13px; gap: 12px;
   }
-  .an-empty svg { opacity: .3; }
+  .an-empty svg { opacity: .25; }
 
   /* dot indicator */
   .badge-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
 
   /* 매출분석 페이지 헤더 */
   .an-page-header {
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 24px 28px 0; flex-wrap: wrap; gap: 16px;
+    display: flex; align-items: flex-start; justify-content: space-between;
+    padding: 28px 32px 0; flex-wrap: wrap; gap: 16px;
   }
-  .an-page-title { font-size: 22px; font-weight: 800; color: var(--text); letter-spacing: -.02em; }
-  .an-page-subtitle { font-size: 13px; color: var(--text3); margin-top: 3px; }
+  .an-page-title {
+    font-size: 24px; font-weight: 800; color: var(--text);
+    letter-spacing: -.03em; line-height: 1.2;
+  }
+  .an-page-subtitle { font-size: 13px; color: var(--text3); margin-top: 4px; letter-spacing: .01em; }
   .an-filter-bar {
     display: flex; gap: 8px; flex-wrap: wrap; align-items: center;
   }
   .an-filter-select {
-    padding: 8px 12px; border: 1px solid var(--border); border-radius: 10px;
+    padding: 9px 14px; border: 1.5px solid var(--border); border-radius: 12px;
     font-size: 13px; background: var(--surface); color: var(--text);
-    cursor: pointer; transition: border-color .15s;
-    font-family: inherit;
+    cursor: pointer; transition: border-color .15s, box-shadow .15s;
+    font-family: inherit; font-weight: 500;
   }
-  .an-filter-select:focus { outline: none; border-color: var(--accent); }
+  .an-filter-select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-dim); }
 
   /* 탭 + 컨텐츠 래퍼 */
-  .an-tabs-wrapper {
-    padding: 0 28px;
-    margin-top: 20px;
+  .an-tabs-wrapper { padding: 0 32px; margin-top: 22px; }
+  .an-content-wrapper { padding: 0 32px 36px; }
+
+  /* 통계 수치 블록 — 토스 숫자 강조 스타일 */
+  .an-stat-block {
+    padding: 18px 22px; background: var(--surface2);
+    border-radius: 16px;
   }
-  .an-content-wrapper {
-    padding: 0 28px 32px;
+  .an-stat-label { font-size: 11px; color: var(--text3); font-weight: 500; letter-spacing: .03em; margin-bottom: 6px; }
+  .an-stat-value { font-size: 20px; font-weight: 800; color: var(--text); font-feature-settings:"tnum"; letter-spacing:-.5px; }
+  .an-stat-sub   { font-size: 11px; color: var(--text3); margin-top: 4px; }
+
+  /* 섹션 구분선 */
+  .an-divider { height: 1px; background: var(--border); margin: 20px 0; }
+
+  /* 거래처 리스트 아이템 */
+  .an-client-item {
+    display: flex; align-items: center; padding: 14px 0;
+    border-bottom: 1px solid var(--border); gap: 14px;
+    transition: background .1s;
+  }
+  .an-client-item:last-child { border-bottom: none; }
+  .an-client-rank {
+    width: 28px; height: 28px; border-radius: 8px;
+    background: var(--accent-dim); color: var(--accent);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 800; flex-shrink: 0;
+  }
+  .an-client-name { font-size: 14px; font-weight: 600; color: var(--text); }
+  .an-client-sub  { font-size: 11px; color: var(--text3); margin-top: 2px; }
+  .an-client-amt  { margin-left: auto; font-size: 15px; font-weight: 800; color: var(--accent); font-feature-settings:"tnum"; letter-spacing:-.3px; white-space:nowrap; }
+
+  /* 상세목록 상태 배지 */
+  .an-status-badge {
+    display: inline-flex; align-items: center; padding: 4px 10px;
+    border-radius: 99px; font-size: 11px; font-weight: 700; white-space: nowrap;
+  }
+  .an-status-badge.issued   { background: rgba(0,196,113,0.1); color: var(--green); }
+  .an-status-badge.confirmed{ background: rgba(49,130,246,0.1); color: var(--accent); }
+  .an-status-badge.pending  { background: rgba(245,158,11,0.1); color: #d97706; }
+
+  /* 인사이트 박스 — 토스 정보 카드 */
+  .an-insight {
+    display: flex; align-items: flex-start; gap: 12px;
+    padding: 16px 18px; background: var(--accent-dim);
+    border-radius: 16px; margin-bottom: 16px;
+  }
+  .an-insight-icon { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
+  .an-insight-text { font-size: 13px; color: var(--text2); line-height: 1.6; }
+  .an-insight-text strong { color: var(--accent); }
+
+  /* 비교 블록 — 전월 대비 */
+  .an-compare-block {
+    display: grid; grid-template-columns: 1fr auto 1fr;
+    align-items: center; gap: 16px;
+    padding: 20px 24px; background: var(--surface2);
+    border-radius: 20px; margin-bottom: 16px;
+  }
+  .an-compare-label { font-size: 11px; color: var(--text3); font-weight: 500; margin-bottom: 6px; letter-spacing:.02em; }
+  .an-compare-val   { font-size: 22px; font-weight: 800; color: var(--text); font-feature-settings:"tnum"; letter-spacing:-.6px; }
+  .an-compare-divider { width: 1px; height: 48px; background: var(--border); }
+  .an-compare-diff  {
+    text-align: center; font-size: 14px; font-weight: 800;
+    padding: 8px 16px; border-radius: 99px;
   }
 
 
@@ -1264,53 +1322,76 @@
       <!-- ════ 어드민: 데일리 매출 현황 ════ -->
       <div id="dashAdminSection" style="display:none">
         <!-- 날짜 선택 + 요약 헤더 -->
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:10px">
-          <div style="font-size:15px;font-weight:700;color:var(--text)">📅 데일리 매출 현황</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px">
+          <div style="font-size:17px;font-weight:800;color:var(--text);letter-spacing:-.02em">데일리 매출 현황</div>
           <div style="display:flex;align-items:center;gap:8px">
-            <input type="date" id="dash-daily-date" style="padding:7px 10px;border:1px solid var(--border);border-radius:8px;font-size:13px;background:var(--surface2);color:var(--text)">
-            <button onclick="renderDailyBoard()" class="btn btn-primary btn-sm">조회</button>
-            <button onclick="moveDailyDate(-1)" class="btn btn-ghost btn-sm">◀ 전날</button>
-            <button onclick="moveDailyDate(1)" class="btn btn-ghost btn-sm">다음날 ▶</button>
+            <button onclick="moveDailyDate(-1)" class="btn btn-ghost btn-sm" style="padding:0 12px;height:34px">◀</button>
+            <input type="date" id="dash-daily-date" style="padding:8px 12px;border:1.5px solid var(--border);border-radius:12px;font-size:13px;background:var(--surface);color:var(--text);font-family:inherit">
+            <button onclick="moveDailyDate(1)" class="btn btn-ghost btn-sm" style="padding:0 12px;height:34px">▶</button>
+            <button onclick="renderDailyBoard()" class="btn btn-primary btn-sm" style="height:34px;padding:0 16px">조회</button>
           </div>
         </div>
         <!-- KPI 요약 -->
-        <div id="dash-daily-kpi" style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px"></div>
+        <div id="dash-daily-kpi" style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px"></div>
         <!-- 담당자별 데일리 카드 -->
         <div id="dash-daily-cards" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px;margin-bottom:20px"></div>
-        <!-- 최근 7일 흐름 차트 -->
-        <div class="card" style="padding:20px;margin-bottom:20px">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
-            <div style="font-size:13px;font-weight:600;color:var(--text)">최근 14일 매출 흐름 (담당자별 누적)</div>
+        <!-- 최근 14일 흐름 차트 -->
+        <div class="an-card" style="margin-bottom:20px">
+          <div class="an-card-header">
+            <div>
+              <div class="an-card-title">최근 14일 매출 흐름</div>
+              <div class="an-card-sub">담당자별 누적</div>
+            </div>
           </div>
           <div style="position:relative;height:200px"><canvas id="dash-trend-chart"></canvas></div>
         </div>
         <!-- 이달 누적 담당자 순위 -->
-        <div class="card" style="padding:20px;margin-bottom:20px">
-          <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:12px">이달 누적 담당자 순위</div>
+        <div class="an-card" style="margin-bottom:20px">
+          <div class="an-card-header">
+            <div>
+              <div class="an-card-title">이달 누적 담당자 순위</div>
+              <div class="an-card-sub">이번 달 매출 기준</div>
+            </div>
+          </div>
           <div id="dash-monthly-rank"></div>
         </div>
       </div>
 
-      <!-- ════ 담당자: 개인 대시보드 ════ -->
+      <!-- ════ 담당자: 개인 대시보드 (토스 스타일) ════ -->
       <div id="dashUserSection" style="display:none">
-        <!-- 내 오늘/이달 KPI -->
-        <div id="dash-user-kpi" style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px"></div>
-        <!-- 내 최근 청구 현황 -->
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px">
-          <div class="card" style="padding:18px">
-            <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:12px">내 이달 매출 (일별)</div>
+        <!-- 개인 KPI 카드 -->
+        <div id="dash-user-kpi" style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:20px"></div>
+        <!-- 차트 + 처리현황 -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+          <div class="an-card" style="margin-bottom:0">
+            <div class="an-card-header">
+              <div>
+                <div class="an-card-title">내 이달 매출</div>
+                <div class="an-card-sub">일별 매출 흐름</div>
+              </div>
+            </div>
             <div style="position:relative;height:160px"><canvas id="dash-user-daily-chart"></canvas></div>
           </div>
-          <div class="card" style="padding:18px">
-            <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:12px">처리 현황</div>
+          <div class="an-card" style="margin-bottom:0">
+            <div class="an-card-header">
+              <div>
+                <div class="an-card-title">처리 현황</div>
+                <div class="an-card-sub">건별 상태 요약</div>
+              </div>
+            </div>
             <div id="dash-user-status-list"></div>
           </div>
         </div>
         <!-- 내 최근 청구 목록 -->
-        <div class="card" style="padding:18px;margin-bottom:16px">
-          <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:12px">내 최근 청구 목록</div>
+        <div class="an-card" style="margin-bottom:16px">
+          <div class="an-card-header">
+            <div>
+              <div class="an-card-title">내 최근 청구 목록</div>
+              <div class="an-card-sub">최근 청구된 인보이스</div>
+            </div>
+          </div>
           <div style="overflow-x:auto">
-            <table class="data-table"><thead><tr><th>날짜</th><th>거래처</th><th>품목</th><th class="mono">금액</th><th>상태</th></tr></thead>
+            <table class="an-table"><thead><tr><th>날짜</th><th>거래처</th><th>품목</th><th class="mono">금액</th><th>상태</th></tr></thead>
             <tbody id="dash-user-inv-tbody"></tbody></table>
           </div>
         </div>
@@ -2192,7 +2273,7 @@
 
         <!-- ── 월별 분석 탭 ── -->
         <div class="an-tab-content" id="an-tab-monthly" style="padding-top:24px">
-          <div class="an-card" style="margin-bottom:20px">
+          <div class="an-card" style="margin-bottom:16px">
             <div class="an-card-header">
               <div>
                 <div class="an-card-title">월별 매출 현황</div>
@@ -2201,10 +2282,13 @@
             </div>
             <div style="position:relative;height:280px"><canvas id="an-chart-monthly"></canvas></div>
           </div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
             <div class="an-card">
               <div class="an-card-header">
-                <div><div class="an-card-title">월별 발행 건수</div></div>
+                <div>
+                  <div class="an-card-title">월별 발행 건수</div>
+                  <div class="an-card-sub">월별 인보이스 건수</div>
+                </div>
               </div>
               <div style="position:relative;height:200px"><canvas id="an-chart-monthly-count"></canvas></div>
             </div>
@@ -2293,11 +2377,17 @@
         <div class="an-tab-content" id="an-tab-table" style="padding-top:24px">
           <div class="an-card">
             <div class="an-card-header">
-              <div><div class="an-card-title">인보이스 상세 목록</div></div>
-              <div id="an-table-count" style="font-size:12px;color:var(--text3);font-weight:600"></div>
+              <div>
+                <div class="an-card-title">인보이스 상세 목록</div>
+                <div class="an-card-sub">날짜 최신순 정렬</div>
+              </div>
+              <div style="display:flex;align-items:center;gap:12px">
+                <span id="an-table-count" style="font-size:12px;color:var(--text3);font-weight:600;background:var(--surface2);padding:4px 10px;border-radius:99px"></span>
+                <button onclick="exportAnalyticsCSV()" class="btn btn-ghost btn-sm" style="font-size:12px;height:32px;padding:0 14px">CSV</button>
+              </div>
             </div>
             <div style="overflow-x:auto">
-              <table class="data-table" style="min-width:900px">
+              <table class="an-table" style="min-width:900px">
                 <thead><tr>
                   <th>날짜</th><th>거래처</th><th>담당자</th><th>품목</th>
                   <th class="mono">공급가액</th><th class="mono">세액</th><th class="mono">합계</th>
@@ -3284,13 +3374,20 @@ function renderDailyBoard() {
   var issuedAmt = dayInvs.filter(function(i){ return i.status==='issued'; }).reduce(function(s,i){ return s+getTotal(i); },0);
   var mgrSet    = new Set(dayInvs.map(function(i){ return i.managerName||'미지정'; }));
   var kpiHtml = [
-    {label:'당일 총 청구', value: _anFmt(totalAmt)+'원', color:'var(--accent)'},
-    {label:'발행 완료',    value: _anFmt(issuedAmt)+'원', color:'var(--green)'},
-    {label:'총 건수',      value: dayInvs.length+'건', color:'#f97316'},
-    {label:'활동 담당자',  value: mgrSet.size+'명', color:'#a78bfa'},
+    {label:'당일 총 청구', value: _anFmt(totalAmt)+'원', color:'var(--accent)', bg:'var(--accent-dim)',
+     icon:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>'},
+    {label:'발행 완료',    value: _anFmt(issuedAmt)+'원', color:'var(--green)', bg:'var(--green-dim)',
+     icon:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="20 6 9 17 4 12"/></svg>'},
+    {label:'총 건수',      value: dayInvs.length+'건', color:'#f97316', bg:'rgba(249,115,22,0.08)',
+     icon:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>'},
+    {label:'활동 담당자',  value: mgrSet.size+'명', color:'#8b5cf6', bg:'rgba(139,92,246,0.08)',
+     icon:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>'},
   ].map(function(k){
-    return '<div class="an-kpi"><div class="an-kpi-label">'+k.label+'</div>'
-      +'<div class="an-kpi-value" style="color:'+k.color+'">'+k.value+'</div></div>';
+    return '<div class="an-kpi">'
+      +'<div class="an-kpi-icon" style="background:'+k.bg+';color:'+k.color+'">'+k.icon+'</div>'
+      +'<div class="an-kpi-label">'+k.label+'</div>'
+      +'<div class="an-kpi-value" style="color:'+k.color+'">'+k.value+'</div>'
+      +'</div>';
   }).join('');
   if($('dash-daily-kpi')) $('dash-daily-kpi').innerHTML = kpiHtml;
 
@@ -3316,24 +3413,25 @@ function renderDailyBoard() {
     var pct  = Math.round(d.amt/maxAmt*100);
     var color = AN_COLORS[idx % AN_COLORS.length];
     var noData = d.noData || d.amt === 0;
-    return '<div class="an-kpi" style="cursor:'+(noData?'default':'pointer')+';border-left:3px solid '+(noData?'var(--border)':color)+'" '
+    return '<div class="an-mgr-card" style="'+(noData?'opacity:.7;':'')+'border-left:3px solid '+(noData?'var(--border)':color)+'" '
       +(noData?'':' onclick="openDailyDrill(\''+name+'\',\''+dateStr+'\')"')+'>'
-      +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">'
-      +'  <div style="display:flex;align-items:center;gap:7px">'
-      +'    <span style="width:28px;height:28px;border-radius:50%;background:'+(noData?'var(--surface2)':color+'22')+';display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:'+(noData?'var(--text3)':color)+'">'+name[0]+'</span>'
-      +'    <strong style="font-size:14px;color:var(--text)">'+name+'</strong>'
+      +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">'
+      +'  <div style="display:flex;align-items:center;gap:9px">'
+      +'    <span style="width:34px;height:34px;border-radius:50%;background:'+(noData?'var(--surface2)':color+'22')+';display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;color:'+(noData?'var(--text3)':color)+'">'+name[0]+'</span>'
+      +'    <strong style="font-size:14px;font-weight:700;color:var(--text)">'+name+'</strong>'
       +'  </div>'
-      +(noData?'<span style="font-size:10px;color:var(--text3);background:var(--surface2);padding:2px 7px;border-radius:5px">실적없음</span>'
-              :'<span style="font-size:10px;color:'+color+';background:'+color+'18;padding:2px 7px;border-radius:5px;cursor:pointer">상세보기 →</span>')
+      +(noData
+        ?'<span style="font-size:10px;color:var(--text3);background:var(--surface2);padding:3px 8px;border-radius:99px;font-weight:600">실적없음</span>'
+        :'<span style="font-size:11px;color:'+color+';background:'+color+'18;padding:3px 9px;border-radius:99px;font-weight:700">상세보기 →</span>')
       +'</div>'
-      +'<div style="font-size:20px;font-weight:700;color:'+(noData?'var(--text3)':color)+';margin-bottom:4px">'+_anFmt(d.amt)+'원</div>'
-      +'<div style="font-size:11px;color:var(--text3);margin-bottom:8px">'+d.invs.length+'건 · 발행 '+_anFmt(d.issuedAmt)+'원</div>'
+      +'<div style="font-size:22px;font-weight:800;color:'+(noData?'var(--text3)':color)+';letter-spacing:-.5px;margin-bottom:5px;font-feature-settings:\'tnum\'">'+_anFmt(d.amt)+'원</div>'
+      +'<div style="font-size:11px;color:var(--text3);margin-bottom:10px">'+d.invs.length+'건 · 발행 '+_anFmt(d.issuedAmt)+'원</div>'
       +'<div style="background:var(--border);border-radius:99px;height:4px;overflow:hidden">'
-      +'  <div style="width:'+pct+'%;height:100%;background:'+(noData?'var(--border)':color)+';border-radius:99px;transition:width .4s"></div>'
+      +'  <div style="width:'+pct+'%;height:100%;background:'+(noData?'var(--border)':color)+';border-radius:99px;transition:width .5s cubic-bezier(.4,0,.2,1)"></div>'
       +'</div>'
       +'</div>';
   }).join('');
-  if($('dash-daily-cards')) $('dash-daily-cards').innerHTML = cardsHtml || '<div style="color:var(--text3);text-align:center;padding:20px">'+dateStr+' 데이터 없음</div>';
+  if($('dash-daily-cards')) $('dash-daily-cards').innerHTML = cardsHtml || '<div style="color:var(--text3);text-align:center;padding:30px">'+dateStr+' 데이터 없음</div>';
 
   // ── 최근 14일 추이 차트 (담당자별 누적 라인)
   var today14 = [];
@@ -3367,11 +3465,14 @@ function renderDailyBoard() {
       data:{ labels:today14.map(function(d){ return d.substring(5); }), datasets },
       options:{
         responsive:true, maintainAspectRatio:false,
-        plugins:{ legend:{labels:{color:'var(--text2)',font:{size:11},boxWidth:10}},
-          tooltip:{callbacks:{label:function(ctx){ return ' '+ctx.dataset.label+': '+_anFmt(ctx.raw)+'원'; }}}},
+        plugins:{ legend:{labels:{color:'var(--text2)',font:{size:11},boxWidth:10,boxHeight:10,borderRadius:5,useBorderRadius:true}},
+          tooltip:{
+            backgroundColor:'rgba(255,255,255,0.97)', titleColor:'#191F28', bodyColor:'#4E5968',
+            borderColor:'rgba(0,0,0,0.08)', borderWidth:1, padding:12, cornerRadius:12,
+            callbacks:{label:function(ctx){ return ' '+ctx.dataset.label+': '+_anFmt(ctx.raw)+'원'; }}}},
         scales:{
-          y:{ ticks:{callback:function(v){ return _anFmtM(v); },color:'var(--text3)',font:{size:11}}, grid:{color:'var(--border)'} },
-          x:{ ticks:{color:'var(--text3)',font:{size:10}}, grid:{display:false} }
+          y:{ display:false, grid:{display:false}, border:{display:false} },
+          x:{ ticks:{color:'var(--text3)',font:{size:10}}, grid:{display:false}, border:{display:false} }
         }
       }
     });
@@ -3393,19 +3494,24 @@ function renderDailyBoard() {
   var totalMonthAmt = rankEntries.reduce(function(s,e){ return s+e[1].amt; },0);
   var rankHtml = rankEntries.length ? rankEntries.map(function(e, idx) {
     var pct = totalMonthAmt ? Math.round(e[1].amt/totalMonthAmt*100) : 0;
-    var medal = idx===0?'🥇':idx===1?'🥈':idx===2?'🥉':'';
+    var rClass = idx===0?'r1':idx===1?'r2':idx===2?'r3':'rn';
+    var rLabel = idx===0?'1':idx===1?'2':idx===2?'3':(idx+1)+'';
     var color = AN_COLORS[idx%AN_COLORS.length];
-    return '<div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)">'
-      +'<span style="font-size:18px;width:24px;text-align:center">'+(medal||(idx+1)+'')+'</span>'
-      +'<span style="font-size:13px;font-weight:600;color:var(--text);min-width:70px">'+e[0]+'</span>'
-      +'<div style="flex:1;background:var(--border);border-radius:99px;height:8px;overflow:hidden">'
-      +'  <div style="width:'+pct+'%;height:100%;background:'+color+';border-radius:99px"></div>'
+    return '<div style="display:flex;align-items:center;gap:14px;padding:13px 0;border-bottom:1px solid var(--border)">'
+      +'<span class="an-rank-badge '+rClass+'">'+rLabel+'</span>'
+      +'<div style="display:flex;align-items:center;gap:8px;min-width:80px">'
+      +'  <span style="width:8px;height:8px;border-radius:50%;background:'+color+';display:inline-block"></span>'
+      +'  <span style="font-size:14px;font-weight:700;color:var(--text)">'+e[0]+'</span>'
       +'</div>'
-      +'<span style="font-size:13px;font-weight:700;color:'+color+';min-width:90px;text-align:right">'+_anFmt(e[1].amt)+'원</span>'
-      +'<span style="font-size:11px;color:var(--text3);min-width:30px">'+e[1].cnt+'건</span>'
+      +'<div style="flex:1;background:var(--border);border-radius:99px;height:5px;overflow:hidden">'
+      +'  <div style="width:'+pct+'%;height:100%;background:'+color+';border-radius:99px;transition:width .5s"></div>'
+      +'</div>'
+      +'<span style="font-size:15px;font-weight:800;color:var(--accent);min-width:100px;text-align:right;font-feature-settings:\'tnum\';letter-spacing:-.3px">'+_anFmt(e[1].amt)+'원</span>'
+      +'<span style="font-size:11px;color:var(--text3);background:var(--surface2);padding:2px 8px;border-radius:99px">'+e[1].cnt+'건</span>'
+      +'<span style="font-size:11px;color:var(--text3);min-width:32px;text-align:right">'+pct+'%</span>'
       +'</div>';
   }).join('')
-  : '<div style="color:var(--text3);text-align:center;padding:16px">'+curYM+' 데이터 없음</div>';
+  : '<div style="color:var(--text3);text-align:center;padding:24px;font-size:13px">'+curYM+' 데이터 없음</div>';
   if($('dash-monthly-rank')) $('dash-monthly-rank').innerHTML = rankHtml;
 }
 
@@ -3425,11 +3531,14 @@ function openDailyDrill(managerName, dateStr) {
   var issuedAmt = invs.filter(function(i){ return i.status==='issued'; }).reduce(function(s,i){ return s+getTotal(i); },0);
   var clientSet = new Set(invs.map(function(i){ return i.client&&i.client.org; }));
   if($('dailyDrillKpi')) $('dailyDrillKpi').innerHTML = [
-    {label:'총 청구', value:_anFmt(totalAmt)+'원', color:'var(--accent)'},
-    {label:'발행완료', value:_anFmt(issuedAmt)+'원', color:'var(--green)'},
-    {label:'거래처', value:clientSet.size+'개사', color:'#a78bfa'},
+    {label:'총 청구', value:_anFmt(totalAmt)+'원', color:'var(--accent)', bg:'var(--accent-dim)'},
+    {label:'발행완료', value:_anFmt(issuedAmt)+'원', color:'var(--green)', bg:'var(--green-dim)'},
+    {label:'거래처', value:clientSet.size+'개사', color:'#8b5cf6', bg:'rgba(139,92,246,0.08)'},
   ].map(function(k){
-    return '<div class="an-kpi"><div class="an-kpi-label">'+k.label+'</div><div class="an-kpi-value" style="font-size:18px;color:'+k.color+'">'+k.value+'</div></div>';
+    return '<div style="padding:18px 22px;border-right:1px solid var(--border)">'
+      +'<div style="font-size:11px;color:var(--text3);font-weight:500;letter-spacing:.02em;margin-bottom:6px">'+k.label+'</div>'
+      +'<div style="font-size:20px;font-weight:800;color:'+k.color+';font-feature-settings:\'tnum\';letter-spacing:-.5px">'+k.value+'</div>'
+      +'</div>';
   }).join('');
 
   // 거래처별 목록
@@ -3512,11 +3621,16 @@ function renderUserDashboard() {
   var monthIssued = monthInvs.filter(function(i){ return i.status==='issued'; }).reduce(function(s,i){ return s+getTotal(i);},0);
 
   if($('dash-user-kpi')) $('dash-user-kpi').innerHTML = [
-    {label:'오늘 청구 금액', value:_anFmt(todayAmt)+'원', sub:todayInvs.length+'건', color:'var(--accent)'},
-    {label:'이달 누적 매출', value:_anFmt(monthAmt)+'원', sub:'발행완료 '+_anFmt(monthIssued)+'원', color:'var(--green)'},
-    {label:'내 미수금',      value:_anFmt(myRecvAmt)+'원', sub:myRecv.length+'건', color: myRecvAmt>0?'var(--red)':'var(--text3)'},
+    {label:'오늘 청구 금액', value:_anFmt(todayAmt)+'원', sub:todayInvs.length+'건', color:'var(--accent)', bg:'var(--accent-dim)',
+     icon:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>'},
+    {label:'이달 누적 매출', value:_anFmt(monthAmt)+'원', sub:'발행완료 '+_anFmt(monthIssued)+'원', color:'var(--green)', bg:'var(--green-dim)',
+     icon:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>'},
+    {label:'내 미수금', value:_anFmt(myRecvAmt)+'원', sub:myRecv.length+'건', color: myRecvAmt>0?'var(--red)':'var(--text3)', bg: myRecvAmt>0?'rgba(240,68,82,0.08)':'var(--surface2)',
+     icon:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>'},
   ].map(function(k){
-    return '<div class="an-kpi"><div class="an-kpi-label">'+k.label+'</div>'
+    return '<div class="an-kpi">'
+      +'<div class="an-kpi-icon" style="background:'+k.bg+';color:'+k.color+'">'+k.icon+'</div>'
+      +'<div class="an-kpi-label">'+k.label+'</div>'
       +'<div class="an-kpi-value" style="color:'+k.color+'">'+k.value+'</div>'
       +'<div class="an-kpi-sub">'+k.sub+'</div></div>';
   }).join('');
@@ -3535,13 +3649,23 @@ function renderUserDashboard() {
   if(_userDailyChart){ try{_userDailyChart.destroy();}catch(e){} _userDailyChart=null; }
   var uCtx=$('dash-user-daily-chart');
   if(uCtx){
+    var isDarkU = document.documentElement.classList.contains('dark');
+    var maxDayVal = Math.max.apply(null, dayVals.concat([1]));
     _userDailyChart=new Chart(uCtx,{
       type:'bar', data:{ labels:dayLabels,
-        datasets:[{label:'매출',data:dayVals,backgroundColor:'rgba(79,142,247,0.7)',borderRadius:3}]},
+        datasets:[{label:'매출',data:dayVals,
+          backgroundColor: dayVals.map(function(v){ return v===maxDayVal?'rgba(49,130,246,1)':'rgba(49,130,246,0.45)'; }),
+          hoverBackgroundColor:'rgba(49,130,246,1)',
+          borderRadius:5, borderSkipped:false}]},
       options:{ responsive:true, maintainAspectRatio:false,
-        plugins:{ legend:{display:false}, tooltip:{callbacks:{label:function(ctx){ return ' '+_anFmt(ctx.raw)+'원'; }}}},
-        scales:{ y:{ticks:{callback:function(v){return _anFmtM(v);},color:'var(--text3)',font:{size:10}},grid:{color:'var(--border)'}},
-          x:{ticks:{color:'var(--text3)',font:{size:9}},grid:{display:false}} }}
+        plugins:{ legend:{display:false}, tooltip:{
+          backgroundColor:isDarkU?'rgba(37,40,54,0.97)':'rgba(255,255,255,0.98)',
+          titleColor:isDarkU?'#e5e9f0':'#191F28', bodyColor:isDarkU?'#a3aabb':'#4E5968',
+          borderColor:isDarkU?'rgba(255,255,255,0.08)':'rgba(0,0,0,0.08)', borderWidth:1,
+          padding:10, cornerRadius:10,
+          callbacks:{label:function(ctx){ return ' '+_anFmt(ctx.raw)+'원'; }}}},
+        scales:{ y:{display:false, grid:{display:false}, border:{display:false}},
+          x:{ticks:{color:'var(--text3)',font:{size:9}},grid:{display:false},border:{display:false}} }}
     });
   }
 
@@ -3553,9 +3677,12 @@ function renderUserDashboard() {
     {label:'발행실패', cnt:myInvs.filter(function(i){return i.status==='issue-failed';}).length, color:'var(--red)'},
   ];
   if($('dash-user-status-list')) $('dash-user-status-list').innerHTML = statusList.map(function(s){
-    return '<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border)">'
-      +'<span style="font-size:13px;color:var(--text2)">'+s.label+'</span>'
-      +'<span style="font-size:15px;font-weight:700;color:'+s.color+'">'+s.cnt+'건</span>'
+    return '<div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--border)">'
+      +'<div style="display:flex;align-items:center;gap:8px">'
+      +'  <span style="width:8px;height:8px;border-radius:50%;background:'+s.color+';display:inline-block"></span>'
+      +'  <span style="font-size:13px;font-weight:500;color:var(--text2)">'+s.label+'</span>'
+      +'</div>'
+      +'<span style="font-size:16px;font-weight:800;color:'+s.color+';font-feature-settings:\'tnum\'">'+s.cnt+'건</span>'
       +'</div>';
   }).join('');
 
@@ -5391,7 +5518,38 @@ function _anRenderOverview(data) {
   var year = yearSel ? yearSel.value : '';
   var mon  = monSel  ? monSel.value  : 'all';
 
-  // KPI 아이콘 색상 팔레트 (토스 스타일)
+  // ── 기간 비교 계산 (오늘 기준 동기간 전월 대비)
+  var today = new Date();
+  var todayDay = today.getDate();
+  var curYear  = today.getFullYear();
+  var curMonth = today.getMonth() + 1; // 1-based
+  // 이번달 1일~오늘
+  var curStartStr = curYear+'-'+String(curMonth).padStart(2,'0')+'-01';
+  var curEndStr   = curYear+'-'+String(curMonth).padStart(2,'0')+'-'+String(todayDay).padStart(2,'0');
+  // 전달 1일~같은 날
+  var prevMonth = curMonth === 1 ? 12 : curMonth - 1;
+  var prevYear  = curMonth === 1 ? curYear - 1 : curYear;
+  var prevDaysInMonth = new Date(prevYear, prevMonth, 0).getDate();
+  var prevDay   = Math.min(todayDay, prevDaysInMonth);
+  var prevStartStr = prevYear+'-'+String(prevMonth).padStart(2,'0')+'-01';
+  var prevEndStr   = prevYear+'-'+String(prevMonth).padStart(2,'0')+'-'+String(prevDay).padStart(2,'0');
+  var VALID_STATUS = ['issued','payment-confirmed','pending','pre-issue'];
+  var curPeriodInvs = state.invoices.filter(function(i){
+    var d=_anDate(i); return d && d>=curStartStr && d<=curEndStr && VALID_STATUS.includes(i.status);
+  });
+  var prevPeriodInvs = state.invoices.filter(function(i){
+    var d=_anDate(i); return d && d>=prevStartStr && d<=prevEndStr && VALID_STATUS.includes(i.status);
+  });
+  var curPeriodAmt  = curPeriodInvs.reduce(function(s,i){ return s+getTotal(i);},0);
+  var prevPeriodAmt = prevPeriodInvs.reduce(function(s,i){ return s+getTotal(i);},0);
+  var diffAmt   = curPeriodAmt - prevPeriodAmt;
+  var diffPct   = prevPeriodAmt > 0 ? Math.round(diffAmt / prevPeriodAmt * 100) : (curPeriodAmt > 0 ? 100 : 0);
+  var periodLabel = curMonth+'월 1일~'+todayDay+'일 vs '+prevMonth+'월 1일~'+prevDay+'일';
+  var diffSign  = diffAmt >= 0 ? '+' : '';
+  var diffColor = diffAmt >= 0 ? 'var(--green)' : 'var(--red)';
+  var diffArrow = diffAmt >= 0 ? '▲' : '▼';
+
+  // KPI 아이콘 색상 팔레트 (토스 스타일) — '발행 완료 금액' 제거, 기간 비교 추가
   var kpiData = [
     { label:'총 청구 금액', value: _anFmt(kpi.total)+'원',
       sub: '공급가 '+_anFmtM(kpi.supply)+' · 세액 '+_anFmtM(kpi.tax),
@@ -5401,10 +5559,13 @@ function _anRenderOverview(data) {
       sub: '발행 '+kpi.issued+' · 입금확인 '+kpi.confirmed+' · 대기 '+kpi.pending,
       color:'var(--green)', bg:'var(--green-dim)',
       icon:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>' },
-    { label:'발행 완료 금액', value: _anFmt(kpi.issuedAmt)+'원',
-      sub: '발행 완료 '+kpi.issued+'건',
-      color:'var(--green)', bg:'var(--green-dim)',
-      icon:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="20 6 9 17 4 12"/></svg>' },
+    { label: curMonth+'월 vs 전월 동기간', value: diffSign+_anFmtM(diffAmt)+'원',
+      sub: periodLabel,
+      color: diffColor, bg: diffAmt>=0 ? 'var(--green-dim)' : 'rgba(240,68,82,0.08)',
+      icon: diffAmt>=0
+        ? '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>'
+        : '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/><polyline points="17 18 23 18 23 12"/></svg>',
+      extra: '<span style="font-size:11px;font-weight:700;color:'+diffColor+'">'+(diffPct>=0?'+':'')+diffPct+'%</span>' },
     { label:'평균 청구 단가', value: _anFmtM(kpi.avgAmt)+'원',
       sub: '건당 평균',
       color:'#f97316', bg:'rgba(249,115,22,0.08)',
@@ -5424,6 +5585,7 @@ function _anRenderOverview(data) {
       +'<div class="an-kpi-icon" style="background:'+k.bg+';color:'+k.color+'">'+k.icon+'</div>'
       +'<div class="an-kpi-label">'+k.label+'</div>'
       +'<div class="an-kpi-value" style="color:'+k.color+'">'+k.value+'</div>'
+      +(k.extra ? '<div style="margin-top:4px">'+k.extra+'</div>' : '')
       +'<div class="an-kpi-sub">'+k.sub+'</div>'
       +'</div>';
   }).join('');
@@ -5484,8 +5646,8 @@ function _anRenderOverview(data) {
         },
         scales: {
           y: {
-            ticks: { callback: function(v){ return _anFmtM(v); }, color: tickCol, font:{size:10}, padding:8 },
-            grid: { color: gridCol, lineWidth: 1 },
+            display: false,
+            grid: { display: false },
             border: { display: false }
           },
           x: {
@@ -6015,8 +6177,7 @@ function _anRenderMonthly(data) {
           }
         },
         scales:{
-          y:{ ticks:{callback:function(v){ return _anFmtM(v); },color:tickCol,font:{size:10},padding:8},
-              grid:{color:gridCol}, border:{display:false} },
+          y:{ display:false, grid:{display:false}, border:{display:false} },
           x:{ ticks:{color:tickCol,font:{size:10}},
               grid:{display:false}, border:{display:false} }
         }
@@ -6054,8 +6215,7 @@ function _anRenderMonthly(data) {
           }
         },
         scales:{
-          y:{ ticks:{color:tickCol,font:{size:10},padding:8},
-              grid:{color:gridCol}, border:{display:false} },
+          y:{ display:false, grid:{display:false}, border:{display:false} },
           x:{ ticks:{color:tickCol,font:{size:10}},
               grid:{display:false}, border:{display:false} }
         }
@@ -6152,8 +6312,7 @@ function _anRenderManager(data) {
           }
         },
         scales:{
-          x:{ ticks:{callback:function(v){ return _anFmtM(v); },color:tickCol,font:{size:10},padding:8},
-              grid:{color:gridCol}, border:{display:false} },
+          x:{ display:false, grid:{display:false}, border:{display:false} },
           y:{ ticks:{color: isDark?'#a3aabb':'#4E5968',font:{size:13,weight:'600'}},
               grid:{display:false}, border:{display:false} }
         }
@@ -6189,8 +6348,7 @@ function _anRenderManager(data) {
           }
         },
         scales:{
-          x:{ ticks:{color:tickCol,font:{size:10},padding:8},
-              grid:{color:gridCol}, border:{display:false} },
+          x:{ display:false, grid:{display:false}, border:{display:false} },
           y:{ ticks:{color: isDark?'#a3aabb':'#4E5968',font:{size:13,weight:'600'}},
               grid:{display:false}, border:{display:false} }
         }
@@ -6321,8 +6479,7 @@ function _anRenderClient(data) {
           }
         },
         scales:{
-          x:{ ticks:{callback:function(v){ return _anFmtM(v); },color:tickCol,font:{size:10},padding:8},
-              grid:{color:gridCol}, border:{display:false} },
+          x:{ display:false, grid:{display:false}, border:{display:false} },
           y:{ ticks:{color: isDark?'#a3aabb':'#4E5968',font:{size:11}},
               grid:{display:false}, border:{display:false} }
         }
