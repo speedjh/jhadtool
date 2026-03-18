@@ -3199,11 +3199,12 @@ function initApp(){
   $('inp-date').value=today();
   const now=new Date(); $('historyMonth').value=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
   $('historyDay').value=now.toISOString().substring(0,10);
-  window.histFilterMode='day';
-  $('historyMonth').style.display='none';
-  $('historyDay').style.display='';
-  if($('histFilterModeMonth'))$('histFilterModeMonth').className='btn btn-sm';
-  if($('histFilterModeDay'))$('histFilterModeDay').className='btn btn-sm hist-filter-mode-active';
+  // 처리이력 기본 필터: 월별 (일별로 하면 오늘 외 날짜 건이 안 보임)
+  window.histFilterMode='month';
+  $('historyMonth').style.display='';
+  $('historyDay').style.display='none';
+  if($('histFilterModeMonth'))$('histFilterModeMonth').className='btn btn-sm hist-filter-mode-active';
+  if($('histFilterModeDay'))$('histFilterModeDay').className='btn btn-sm';
   renderSettingsForm(); // 설정 폼 초기화
   if(!$('itemsTbody').children.length) addItem();
   var _now=new Date();
