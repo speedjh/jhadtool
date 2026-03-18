@@ -83,11 +83,10 @@ module.exports = async function handler(req, res) {
       console.log('[bolta-proxy] test 재시도 결과:', status);
     }
 
-    // /v1/customers 조회처럼 customerKey 자동획득 요청이면 전체 데이터 반환
-    const boltaErr = data && data.type === 'ERROR';
-    const statusCode = boltaErr ? (status >= 400 ? status : 400) : status;
-
-    return res.status(statusCode).json(data);
+    // 볼타 실제 HTTP 상태코드를 그대로 반환 (data.type 기반 변환 제거)
+    // data.type==='ERROR' 여도 HTTP 200이면 그대로 200으로 전달
+    console.log('[bolta-proxy] ← status:', status, '| data앞100:', JSON.stringify(data).substring(0,100));
+    return res.status(status).json(data);
 
   } catch (e) {
     console.error('[bolta-proxy] exception:', e.message);

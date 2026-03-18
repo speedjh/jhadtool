@@ -5251,11 +5251,10 @@ async function confirmIssue(){
     }
     // Bolta 에러 응답 구조: { body: { message, code }, type: 'ERROR' } 또는 직접 { message, code }
     const errMsg = (data.body && data.body.message) || data.message || data.error || null;
-    // ✅ 성공 판단: res.ok이고 issuanceKey 또는 id가 있으면 무조건 성공으로 처리
-    // (data.type이 있어도 issuanceKey가 있으면 실제로는 성공)
-    const hasIssuanceKey = !!(data.issuanceKey || data.id || data.taxInvoiceId);
-    const isErr = !res.ok || (data.type === 'ERROR' && !hasIssuanceKey);
-    // 모달에 볼타 응답 원문 표시 (디버깅용 - 발행 안 사라질 때 원인 파악)
+    // ✅ 성공 판단: res.ok(HTTP 200~299)이면 무조건 성공으로 처리
+    // 볼타는 실패 시 4xx/5xx HTTP 상태코드를 반환하므로 res.ok만으로 판단
+    const isErr = !res.ok;
+    // 모달에 볼타 응답 원문 표시 (디버깅용)
     ae.innerHTML = '<div style="font-size:11px;color:var(--text3);background:var(--surface2);padding:6px 10px;border-radius:6px;margin-bottom:6px;word-break:break-all">'
       + '볼타응답 ' + res.status + ': ' + JSON.stringify(data).substring(0,200) + '</div>';
     if(!isErr){
