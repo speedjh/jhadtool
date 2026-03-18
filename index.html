@@ -3780,10 +3780,16 @@ function renderIssueReady(){
 }
 
 function renderPending(){
-  // pending + preIssued=true(선발행 완료 후 입금대기) 모두 표시
-  var pending=state.invoices.filter(function(i){return i.status==='pending';});
+  // pending(일반) + issued+preIssued=true+paymentConfirmedAt=null (선발행완료, 입금대기) 표시
+  var pending=state.invoices.filter(function(i){
+    if(i.status==='pending') return true;
+    // 선발행 완료 후 입금 아직 안 받은 건
+    if(i.status==='issued' && i.preIssued && !i.paymentConfirmedAt) return true;
+    return false;
+  });
   $('pendingTbody').innerHTML=pending.length?pending.map(function(inv){
     var isNoTax=inv.taxIssue===false;
+    var rowBg = inv.preIssued ? 'background:rgba(79,142,247,.05);' : '';
     var dueHtml='-';
     if(inv.due){
       var diff=Math.ceil((new Date(inv.due)-new Date())/86400000);
@@ -3794,7 +3800,6 @@ function renderPending(){
     var itemLabel=(inv.items[0]?inv.items[0].name:'없음')+(inv.items.length>1?' 외 '+(inv.items.length-1)+'건':'');
     var taxAmt=isNoTax?'<span style="color:var(--text3)">-</span>':fmt(getTax(inv))+'원';
     var totalAmt=isNoTax?fmt(getSupply(inv))+'원':fmt(getTotal(inv))+'원';
-    var isConfirmed=false;
     var typeBadge=inv.preIssued
       ? '<span class="badge badge-blue">선발행 입금대기</span>'
       : '<span class="badge badge-yellow">입금대기</span>';
@@ -3803,6 +3808,11 @@ function renderPending(){
       : inv.preIssued
         ? '<span style="font-size:11px;font-weight:700;color:#fff;background:var(--accent);border-radius:4px;padding:1px 6px">선발행완료</span>'
         : '<span style="font-size:11px;font-weight:600;color:var(--accent)">세발건</span>';
+    // 선발행 완료 건: 이체 매칭 버튼 (클릭 시 상세패널 → 입금 매칭 진행)
+    // 일반 pending 건: 입금 확인 버튼
+    var actionBtn = inv.preIssued
+      ? '<button class="btn btn-primary btn-sm" data-action="open-detail" data-id="'+inv.id+'" style="background:var(--accent2)">💰 입금 매칭</button>'
+      : '<button class="btn btn-primary btn-sm" data-action="open-detail" data-id="'+inv.id+'">입금 확인</button>';
     return '<tr class="clickable-row" data-action="open-detail" data-id="'+inv.id+'" style="cursor:pointer;'+rowBg+'">'
       +'<td style="text-align:center">'+taxIssueBadge+'</td>'
       +'<td><strong>'+inv.client.org+'</strong><br><span style="font-size:12px;color:var(--text3)">'+inv.client.bizno+'</span></td>'
@@ -3907,7 +3917,9 @@ function renderHistory(){
         ?'<span class="badge badge-green" style="background:rgba(0,196,113,.15);color:var(--green)">입금확인 · 발행대기</span>'
         :isSettle2
           ?'<span class="badge badge-green">정산완료 (세발건)</span>'
-          :'<span class="badge badge-green">발행완료</span>'+boltaRowBadge;
+          :(inv.preIssued && !inv.paymentConfirmedAt)
+            ?'<span class="badge badge-blue">선발행완료</span><span style="font-size:10px;background:#fef3c7;color:#b45309;padding:2px 7px;border-radius:10px;font-weight:600;margin-left:4px">⏳ 입금대기</span>'
+            :'<span class="badge badge-green">발행완료</span>'+boltaRowBadge;
 
     var itemLabel=(inv.items[0]?inv.items[0].name:'없음')+(inv.items.length>1?' 외 '+(inv.items.length-1)+'건':'');
     var dateCell=isSettle2?(inv.paymentConfirmedAt||inv.issuedAt||'-'):(inv.issuedAt||inv.createdAt||'-').substring(0,16);
@@ -5279,19 +5291,22 @@ async function confirmIssue(){
       inv.ntsConfirmNum = data.ntsConfirmNum||data.confirmNum||data.ntcNum||null;
       if(inv.preIssue){
         // ══════════════════════════════════════════════════════════
-        // 선발행 플로우: 계산서 발행 완료 → 이체확인대기로 이동
-        // status = 'pending' + preIssued=true
-        // → 이체확인대기 목록에 남아 입금 매칭 후 issued 처리
+        // 선발행 플로우: 계산서 발행 완료
+        // status = 'issued' + preIssued=true + paymentConfirmedAt=null
+        // → 처리이력 "계산서 발행 이력" 탭에 표시 (발행 기록)
+        // → 이체확인대기에도 표시 (입금 매칭 대기)
+        // → 이체 매칭 후 paymentConfirmedAt 기록 → 정산완료
         // ══════════════════════════════════════════════════════════
-        inv.status='pending';  // 이체확인대기 (입금 기다리는 중)
-        inv.preIssued=true;    // 계산서 발행 완료 표시
+        inv.status='issued';
+        inv.preIssued=true;
+        inv.paymentConfirmedAt=null; // 아직 입금 미확인
         // 미수금 자동 등록 (입금 전이므로)
         autoCreateReceivable(inv);
         if(_keyMissing) {
-          ae.innerHTML='<div class="alert alert-warning">⚠️ 선발행 완료 (발행키 미수신)<br><small>볼타 대시보드에서 발행키를 확인하고, 이체확인대기에서 입금 매칭 후 정산완료 처리하세요.</small></div>';
-          btn.textContent='선발행 완료 (키 확인 필요)'; toast('⚠️ 선발행 완료 - 입금 매칭 대기','warning');
+          ae.innerHTML='<div class="alert alert-warning">⚠️ 선발행 완료 (발행키 미수신)<br><small>볼타 대시보드에서 발행키 확인 후, 이체확인대기에서 입금 매칭하세요.</small></div>';
+          btn.textContent='선발행 완료 (키 확인 필요)'; toast('⚠️ 선발행 완료 - 이체확인대기로 이동합니다','warning');
         } else {
-          ae.innerHTML='<div class="alert alert-success">✅ 선발행 완료! 이체확인대기로 이동됩니다.<br><small>입금 수신 후 이체 매칭하여 정산완료 처리하세요.</small></div>';
+          ae.innerHTML='<div class="alert alert-success">✅ 선발행 완료! 이체확인대기로 이동합니다.<br><small>입금 수신 후 이체내역과 매칭하세요.</small></div>';
           btn.textContent='선발행 완료 ✓'; toast('선발행 완료! 이체확인대기에서 입금 매칭하세요.','success');
         }
       } else {
@@ -5312,6 +5327,8 @@ async function confirmIssue(){
       _isIssuingInProgress=false; // 🔓 플래그 해제 (즉시 - 다음 발행 바로 가능)
       _modalCloseBtns.forEach(function(b){ b.disabled=false; b.style.pointerEvents=''; b.style.opacity=''; });
       closeModal('issueModal'); // ← 즉시 닫기 (1800ms 딜레이 제거 → 연속발행 지원)
+      // 선발행 건: 이체확인대기 화면으로 자동 이동 (입금 매칭 안내)
+      if(inv.preIssue) { setTimeout(function(){ showPage('pending'); }, 300); }
       // ✅ 2단계: DB 저장은 백그라운드 (화면 블로킹 없음)
       var _apiInv=state.invoices.find(function(i){return i.id===pendingIssueId;});
       if(_apiInv) {
