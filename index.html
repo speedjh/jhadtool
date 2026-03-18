@@ -3069,6 +3069,7 @@ function showPage(name){
   if(pg) pg.classList.add('active');
   if(nv) nv.classList.add('active');
   // 페이지별 렌더 호출
+  if(name==='new-invoice') { populateClientSelect(); populateManagerSelect(); }
   if(name==='dashboard')   { renderDashboard(); }
   if(name==='pending')     { renderPending(); renderIssueReady(); }
   if(name==='issue-ready') { renderIssueReady(); }
@@ -4904,6 +4905,8 @@ function saveInvoice(){
 function resetForm(){
   ['inp-bizno','inp-orgname','inp-repname','inp-email','inp-address','inp-biztype','inp-bizitem','inp-due','inp-memo'].forEach(i=>$(i).value='');
   $('clientSelect').value=''; $('inp-due-type').value=''; $('saveClient').checked=false;
+  populateClientSelect();   // 거래처 목록 항상 최신으로 유지
+  populateManagerSelect();  // 담당자 목록 항상 최신으로 유지
   $('inp-manager').value=state.currentUser?.id||''; $('inp-date').value=today();
   $('itemsTbody').innerHTML=''; itemCounter=0; addItem();
   $('inp-tax-issue').checked=true; $('inp-pre-issue').checked=false; updateTaxToggleUI(); calcAmounts();
