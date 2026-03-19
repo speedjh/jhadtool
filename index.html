@@ -1188,6 +1188,10 @@
   .quote-row:hover { background: #F3F4F6; }
   /* 새 탭 PDF 출력용 - printQuotePDF()가 새 탭을 열어 처리 */
 }
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -5093,6 +5097,8 @@ async function confirmIssue(){
     _isIssuingInProgress = false;
     if(btn){ btn.disabled=false; btn.textContent = btnText2||' 세금계산서 발행'; }
     try{ _modalCloseBtns.forEach(function(b2){ b2.disabled=false; b2.style.pointerEvents=''; b2.style.opacity=''; }); }catch(ex){}
+    // 발행중 행 상태 복원 (모달 X 닫기 포함 모든 경우)
+    try{ renderIssueReady(); }catch(ex2){}
   }
   if(!state.settings.apiKey){ae.innerHTML='<div class="alert alert-error"> API 키가 설정되지 않았습니다.</div>';_resetIssueUI();return;}
   const sup=state.settings.sup||{};
@@ -8598,13 +8604,38 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // data-close modals
     const closeEl = e.target.closest('[data-close]');
-    if (closeEl) { closeModal(closeEl.dataset.close); return; }
+    if (closeEl) {
+      closeModal(closeEl.dataset.close);
+      // 발행 모달을 X/취소로 닫을 때 → 발행중 플래그 해제 + 행 상태 복원
+      if(closeEl.dataset.close === 'issueModal') {
+        if(_isIssuingInProgress) { _isIssuingInProgress = false; }
+        renderIssueReady();
+      }
+      return;
+    }
 
     // data-action buttons
     const actionEl = e.target.closest('[data-action]');
     if (actionEl) {
       const act=actionEl.dataset.action, id=actionEl.dataset.id;
-      if(act==='issue')       openIssueModal(id);
+      if(act==='issue'){
+        // ── 발행 버튼 클릭 즉시 해당 행을 "발행중..." 상태로 표시 (중복 클릭 방지)
+        var _issueRow = actionEl.closest('tr');
+        if(_issueRow && !_issueRow.dataset.issuing){
+          _issueRow.dataset.issuing='1';
+          // 버튼 셀만 교체하여 "발행중..." 스피너 표시
+          var _btnCell = actionEl.closest('td');
+          if(_btnCell){
+            _btnCell.innerHTML='<span style="display:inline-flex;align-items:center;gap:6px;color:var(--accent2);font-weight:600;font-size:13px">'
+              +'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="animation:spin 1s linear infinite"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>'
+              +'발행중...</span>';
+          }
+          // 행 배경을 연한 파란색으로 강조
+          _issueRow.style.background='rgba(79,142,247,.10)';
+          _issueRow.style.pointerEvents='none'; // 행 전체 클릭 차단
+        }
+        openIssueModal(id);
+      }
       if(act==='edit-invoice') openEditInvoiceModal(id);
       if(act==='del-invoice') deleteInvoice(id);
       if(act==='manual-issued') manualMarkIssued(id);
