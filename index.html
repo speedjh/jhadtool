@@ -1564,13 +1564,13 @@
       <div style="display:flex;gap:0;margin-bottom:16px;border-bottom:2px solid var(--border)">
         <button id="histTabAll"      class="hist-tab hist-tab-active">전체</button>
         <button id="histTabSettle1"  class="hist-tab"> 정산완료 (비세발)</button>
-        <button id="histTabSettle2"  class="hist-tab"> 정산완료 (세발건)</button>
+        <button id="histTabSettle2"  class="hist-tab"> 이체매칭 완료</button>
         <button id="histTabInvoice"  class="hist-tab"> 계산서 발행 이력</button>
       </div>
       <!-- 요약 카드 -->
       <div class="stats-grid" style="grid-template-columns:repeat(4,1fr)">
         <div class="stat-card"><div class="stat-label">정산완료 (비세발)</div><div class="stat-value green" id="hstat-notax">0</div></div>
-        <div class="stat-card"><div class="stat-label">정산완료 (세발건)</div><div class="stat-value green" id="hstat-settle2">0</div></div>
+        <div class="stat-card"><div class="stat-label">이체매칭 완료</div><div class="stat-value green" id="hstat-settle2">0</div></div>
         <div class="stat-card"><div class="stat-label">계산서 발행 건수</div><div class="stat-value blue" id="hstat-issued">0</div></div>
         <div class="stat-card"><div class="stat-label">계산서 발행 금액</div><div class="stat-value" id="hstat-issued-amt" style="font-size:16px">0원</div></div>
       </div>
@@ -3866,8 +3866,30 @@ function renderHistory(){
   var search=$('historySearch')?($('historySearch').value||'').toLowerCase():'';
   var mgr=$('historyManagerFilter')?$('historyManagerFilter').value||'':'';
 
-  var all=state.invoices.filter(function(i){return i.status==='issued'||i.status==='payment-confirmed';});
-  // 날짜 기준: issuedAt > paymentConfirmedAt > createdAt (선발행 건은 issuedAt이 없을 수 있어 createdAt fallback)
+  // ─────────────────────────────────────────────────────────────
+  // 처리이력 표시 대상 정의
+  //
+  // [일반 세발건 플로우]
+  //   pending → payment-confirmed(입금확인/이체매칭) → issued+txId(계산서발행완료)
+  //
+  // [선발행 플로우]
+  //   pre-issue → issued+preIssued=true(계산서선발행) → issued+paymentConfirmedAt(입금매칭완료)
+  //
+  // 처리이력에 표시할 것:
+  //   1. 비세발 정산완료: taxIssue=false + status=issued
+  //   2. 이체매칭 완료 (계산서 발행 전): status=payment-confirmed + paymentConfirmedAt
+  //                  OR 선발행 최종완료: status=issued + preIssued=true + paymentConfirmedAt
+  //   3. 계산서 발행 이력: status=issued + txId 있음 + taxIssue!=false (볼타 발행완료)
+  //      (선발행 입금대기 포함: status=issued + preIssued=true + paymentConfirmedAt=null)
+  // ─────────────────────────────────────────────────────────────
+  var all=state.invoices.filter(function(i){
+    if(i.taxIssue===false && i.status==='issued') return true;                      // 비세발 정산완료
+    if(i.taxIssue!==false && i.status==='payment-confirmed' && i.paymentConfirmedAt) return true; // 이체매칭 완료(발행 전)
+    if(i.taxIssue!==false && i.status==='issued' && i.txId && i.txId!=='정산완료') return true;  // 계산서 발행 이력
+    return false;
+  });
+
+  // 날짜 기준: issuedAt > paymentConfirmedAt > createdAt
   function getRefDate(i){ return i.issuedAt||i.paymentConfirmedAt||i.createdAt||''; }
   if(filterMode==='day'){
     if(day) all=all.filter(function(i){return getRefDate(i).startsWith(day);});
@@ -3878,12 +3900,27 @@ function renderHistory(){
   if(mgr)    all=all.filter(function(i){return i.managerId===mgr;});
   all=[...all].reverse();
 
-  // 비세발: taxIssue===false
-  var settle1=all.filter(function(i){return i.taxIssue===false;});
-  // 세발건 정산완료: taxIssue!==false + paymentConfirmedAt 존재 (입금확인 완료)
-  var settle2=all.filter(function(i){return i.taxIssue!==false && !!i.paymentConfirmedAt;});
-  // 계산서 발행 이력: taxIssue!==false + issued + txId 있는 건 (선발행 포함: preIssued=true)
-  var invoiced=all.filter(function(i){return i.taxIssue!==false && i.status==='issued' && i.txId && i.txId!=='정산완료';});
+  // 탭별 분류
+  // settle1: 비세발 정산완료 (taxIssue=false + status=issued)
+  var settle1=all.filter(function(i){return i.taxIssue===false && i.status==='issued';});
+  // settle2: 이체매칭 완료
+  //   - 일반 세발건: status=payment-confirmed + paymentConfirmedAt (계산서 발행 대기 중)
+  //   - 선발행 최종완료: status=issued + preIssued=true + paymentConfirmedAt (입금매칭 완료)
+  var settle2=all.filter(function(i){
+    if(i.taxIssue===false) return false;
+    if(i.status==='payment-confirmed' && i.paymentConfirmedAt) return true;        // 일반: 이체매칭 완료
+    if(i.status==='issued' && i.preIssued && i.paymentConfirmedAt) return true;    // 선발행: 최종완료
+    return false;
+  });
+  // invoiced: 계산서 발행 이력 (볼타 발행 완료)
+  //   - 일반 발행완료: status=issued + txId(BOLTA/ik_/IssuanceKey) + preIssued!=true
+  //   - 선발행 입금대기: status=issued + preIssued=true + paymentConfirmedAt=null
+  var invoiced=all.filter(function(i){
+    if(i.taxIssue===false) return false;
+    if(i.status!=='issued') return false;
+    if(!i.txId || i.txId==='정산완료') return false;
+    return true; // 선발행 입금대기 + 일반 발행완료 모두 포함
+  });
 
   $('hstat-notax').textContent=settle1.length;
   $('hstat-settle2').textContent=settle2.length;
@@ -3897,13 +3934,24 @@ function renderHistory(){
 
   $('historyTbody').innerHTML=list.length?list.map(function(inv){
     var isNoTax=inv.taxIssue===false;
-    var isSettle2=!isNoTax&&!!inv.paymentConfirmedAt;
+    // 행 분류 판별
+    var isNoTax = inv.taxIssue===false;
+    // 이체매칭 완료 행 판별:
+    //   - 일반 세발건 이체매칭: status=payment-confirmed
+    //   - 선발행 최종완료: status=issued + preIssued + paymentConfirmedAt
+    var isPaymentMatch = !isNoTax && inv.status==='payment-confirmed' && !!inv.paymentConfirmedAt;
+    var isPreIssuedFinal = !isNoTax && inv.status==='issued' && inv.preIssued && !!inv.paymentConfirmedAt;
+    var isSettle2 = isPaymentMatch || isPreIssuedFinal;
+    // 계산서 발행 이력 행: status=issued + txId + !paymentConfirmedAt (일반) OR preIssued+입금대기
+    var isInvoiced = !isNoTax && inv.status==='issued' && !!inv.txId && inv.txId!=='정산완료';
 
     var typeBadge=isNoTax
       ?'<span class="badge badge-yellow">비세발</span>'
-      :isSettle2
-        ?'<span class="badge badge-green" style="background:rgba(0,196,113,.15);color:var(--green)">세발건</span>'
-        :'<span class="badge badge-blue">계산서발행</span>';
+      :isPaymentMatch
+        ?'<span class="badge badge-green" style="background:rgba(0,196,113,.15);color:var(--green)">이체매칭</span>'
+        :isPreIssuedFinal
+          ?'<span class="badge badge-green">선발행완료</span>'
+          :'<span class="badge badge-blue">계산서발행</span>';
 
     var txCell=isNoTax||isSettle2
       ? '-'
@@ -3911,9 +3959,9 @@ function renderHistory(){
     var taxCell=isNoTax?'-':fmt(getTax(inv))+'원';
     var taxColor=isNoTax?'var(--text3)':'inherit';
 
-    // 볼타 발행 상태 배지 (행에 표시 - 행 클릭 시 조회 후 저장된 값)
+    // 볼타 발행 상태 배지 (행에 표시)
     var boltaRowBadge = '';
-    if(!isNoTax && !isSettle2 && inv.boltaStatus) {
+    if(isInvoiced && !isSettle2 && inv.boltaStatus) {
       var bsMap = {
         'ISSUED':    '<span style="font-size:10px;background:#d1fae5;color:#065f46;padding:2px 7px;border-radius:10px;font-weight:600;margin-left:4px">✅ 발행완료</span>',
         'PENDING':   '<span style="font-size:10px;background:#fef9c3;color:#854d0e;padding:2px 7px;border-radius:10px;font-weight:600;margin-left:4px">⏳ 전송중</span>',
@@ -3923,16 +3971,19 @@ function renderHistory(){
     }
     var statusCell=isNoTax
       ?'<span class="badge badge-green">정산완료 (비세발)</span>'
-      :isSettle2&&inv.status==='payment-confirmed'
-        ?'<span class="badge badge-green" style="background:rgba(0,196,113,.15);color:var(--green)">입금확인 · 발행대기</span>'
-        :isSettle2
-          ?'<span class="badge badge-green">정산완료 (세발건)</span>'
+      :isPaymentMatch
+        ?'<span class="badge badge-green" style="background:rgba(0,196,113,.15);color:var(--green)">이체매칭 완료 · 발행대기</span>'
+        :isPreIssuedFinal
+          ?'<span class="badge badge-green">선발행 정산완료</span>'
           :(inv.preIssued && !inv.paymentConfirmedAt)
             ?'<span class="badge badge-blue">선발행완료</span><span style="font-size:10px;background:#fef3c7;color:#b45309;padding:2px 7px;border-radius:10px;font-weight:600;margin-left:4px">⏳ 입금대기</span>'
             :'<span class="badge badge-green">발행완료</span>'+boltaRowBadge;
 
     var itemLabel=(inv.items[0]?inv.items[0].name:'없음')+(inv.items.length>1?' 외 '+(inv.items.length-1)+'건':'');
-    var dateCell=isSettle2?(inv.paymentConfirmedAt||inv.issuedAt||'-'):(inv.issuedAt||inv.createdAt||'-').substring(0,16);
+    // 날짜 셀: 이체매칭 완료건은 paymentConfirmedAt, 계산서 발행건은 issuedAt
+    var dateCell=isSettle2
+      ?(inv.paymentConfirmedAt||inv.issuedAt||'-').substring(0,16)
+      :(inv.issuedAt||inv.createdAt||'-').substring(0,16);
 
     var dlBtn='<button class="btn btn-ghost btn-sm" style="padding:5px 8px;font-size:11px" onclick="event.stopPropagation();openInvoicePreview(\''+inv.id+'\')" title="미리보기/저장">🔍 미리보기</button>';
     // 선발행 입금대기 건: 어드민만 처리이력에서 정산완료 버튼 표시
