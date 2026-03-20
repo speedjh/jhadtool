@@ -6989,8 +6989,13 @@ function confirmDetailPayment(){
   },0);
   var targetAmt=inv.taxIssue===false?getSupply(inv):getTotal(inv);
   if(sumAmt!==targetAmt){
-    toast('합산 금액('+fmt(sumAmt)+'원)이 청구액('+fmt(targetAmt)+'원)과 일치하지 않습니다','error');
-    return;
+    // 선발행 건: 금액 불일치여도 경고만 하고 진행 허용 (이미 계산서 발행됨)
+    if(inv.preIssued){
+      toast('⚠️ 금액 불일치('+fmt(sumAmt)+'원 / 청구 '+fmt(targetAmt)+'원) — 선발행 건으로 처리 진행합니다','warning');
+    } else {
+      toast('합산 금액('+fmt(sumAmt)+'원)이 청구액('+fmt(targetAmt)+'원)과 일치하지 않습니다','error');
+      return;
+    }
   }
 
   // 기존 매칭 해제 후 다중 매칭 연결
@@ -7017,17 +7022,19 @@ function confirmDetailPayment(){
     state.transfers.filter(function(t){return t.invoiceId===detailInvId;}).forEach(function(t){dbSaveTransfer(t);});
     renderAll(); closeDetailPanel();
   } else if(inv.preIssued) {
-    // 선발행 건 → 이체 매칭 완료 → issued (정산완료)
-    // 계산서는 이미 발행됐고 입금까지 확인됐으므로 바로 처리이력으로
-    inv.status='issued';
+    // 선발행 건 → 이체 매칭 완료 → 처리이력으로
+    // status는 이미 'issued', paymentConfirmedAt 기록으로 정산완료 처리
     inv.paymentConfirmedAt=now;
-    inv.issuedAt=inv.issuedAt||now; // 발행일은 기존 값 유지
+    inv.issuedAt=inv.issuedAt||now;
     toast('입금 확인 완료 — 선발행 정산완료 처리되었습니다','success');
-    saveState(); dbSaveInvoice(inv);
+    // state 저장 먼저, 그 다음 렌더 (순서 중요)
+    saveState();
+    dbSaveInvoice(inv);
     var _autoR2=state.receivables.find(function(r){return r.invoiceId===detailInvId;});
     if(_autoR2){ _autoR2.paid=(_autoR2.paid||0)+sumAmt; if(_autoR2.paid>=_autoR2.amount) _autoR2.status='paid'; dbSaveReceivable(_autoR2); }
     state.transfers.filter(function(t){return t.invoiceId===detailInvId;}).forEach(function(t){dbSaveTransfer(t);});
-    renderAll(); closeDetailPanel();
+    closeDetailPanel(); // 패널 먼저 닫고
+    renderAll();        // 그 다음 전체 렌더 (pending에서 제거됨)
   } else {
     // 일반 세발건 → payment-confirmed (계산서 발행 대기)
     inv.status='payment-confirmed';
