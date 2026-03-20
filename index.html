@@ -3813,10 +3813,11 @@ function renderPending(){
       : inv.preIssued
         ? '<span style="font-size:11px;font-weight:700;color:#fff;background:var(--accent);border-radius:4px;padding:1px 6px">선발행완료</span>'
         : '<span style="font-size:11px;font-weight:600;color:var(--accent)">세발건</span>';
-    // 선발행 완료 건: 이체 매칭 버튼 (클릭 시 상세패널 → 입금 매칭 진행)
+    // 선발행 완료 건: 이체 매칭 버튼 + 강제정산완료 버튼
     // 일반 pending 건: 입금 확인 버튼
     var actionBtn = inv.preIssued
       ? '<button class="btn btn-primary btn-sm" data-action="open-detail" data-id="'+inv.id+'" style="background:var(--accent2)">💰 입금 매칭</button>'
+       +'<button class="btn btn-sm" data-action="force-settle" data-id="'+inv.id+'" style="background:var(--green);color:#fff;font-size:11px" title="이체 매칭 없이 바로 정산완료 처리">✓ 정산완료</button>'
       : '<button class="btn btn-primary btn-sm" data-action="open-detail" data-id="'+inv.id+'">입금 확인</button>';
     return '<tr class="clickable-row" data-action="open-detail" data-id="'+inv.id+'" style="cursor:pointer;'+rowBg+'">'
       +'<td style="text-align:center">'+taxIssueBadge+'</td>'
@@ -3930,6 +3931,10 @@ function renderHistory(){
     var dateCell=isSettle2?(inv.paymentConfirmedAt||inv.issuedAt||'-'):(inv.issuedAt||inv.createdAt||'-').substring(0,16);
 
     var dlBtn='<button class="btn btn-ghost btn-sm" style="padding:5px 8px;font-size:11px" onclick="event.stopPropagation();openInvoicePreview(\''+inv.id+'\')" title="미리보기/저장">🔍 미리보기</button>';
+    // 선발행 입금대기 건: 처리이력에서도 정산완료 처리 버튼 표시
+    var forceSettleBtn = (inv.preIssued && !inv.paymentConfirmedAt)
+      ? '<button class="btn btn-sm" style="padding:5px 8px;font-size:11px;background:var(--green);color:#fff;margin-left:4px" onclick="event.stopPropagation();forceSettle(\''+inv.id+'\')" title="이체 매칭 없이 정산완료 처리">✓ 정산완료</button>'
+      : '';
     return '<tr class="hist-preview-row" style="cursor:pointer" data-preview-id="'+inv.id+'">'
       +'<td>'+typeBadge+'</td>'
       +'<td><strong>'+inv.client.org+'</strong></td>'
@@ -3940,7 +3945,7 @@ function renderHistory(){
       +'<td class="mono"><strong>'+fmt(isNoTax?getSupply(inv):getTotal(inv))+'원</strong></td>'
       +'<td style="color:var(--text3);font-size:12px">'+dateCell+'</td>'
       +'<td>'+statusCell+'</td>'
-      +'<td>'+dlBtn+'</td>'
+      +'<td>'+dlBtn+forceSettleBtn+'</td>'
       +'</tr>';
   }).join('')
   :'<tr><td colspan="9" style="text-align:center;color:var(--text3);padding:30px">처리 이력이 없습니다</td></tr>';
@@ -5408,8 +5413,7 @@ function doneNoTax(id){
 }
 
 // ✅ 수동 발행완료 처리 - 볼타에서 발행됐지만 앱에 미반영된 경우
-function manualMarkIssued(id){
-  var inv=state.invoices.find(function(x){return x.id===id;}); if(!inv)return;
+function manualMarkIssued(id){  var inv=state.invoices.find(function(x){return x.id===id;}); if(!inv)return;
   var key = prompt('볼타 발행키(issuanceKey)를 입력하세요.\n(모르면 취소 → 직접 처리이력에서 확인)');
   if(key === null) return; // 취소
   if(!confirm('['+inv.client.org+'] '+fmt(getTotal(inv))+'원\n\n발행완료로 수동 처리하시겠습니까?\n발행키: '+(key||'미입력')+'\n\n⚠️ 볼타에서 실제 발행된 경우에만 사용하세요.')) return;
@@ -5426,9 +5430,25 @@ function manualMarkIssued(id){
   toast('✅ 수동 발행완료 처리되었습니다. 처리이력에서 확인하세요.','success');
 }
 
-// ══════════════════════════════════════════════════════════════
-// 📊 매출 분석 (어드민 전용)
-// ══════════════════════════════════════════════════════════════
+// 이체확인대기에서 선발행 건을 이체 매칭 없이 강제 정산완료 처리
+function forceSettle(id){
+  var inv=state.invoices.find(function(x){return x.id===id;}); if(!inv)return;
+  var label='['+inv.client.org+'] '+fmt(getTotal(inv))+'원';
+  if(!confirm(label+'\n\n이체 매칭 없이 바로 정산완료 처리하시겠습니까?\n\n실제 입금이 확인된 경우에만 사용하세요.')) return;
+  var now=new Date().toISOString().replace('T',' ').substring(0,16);
+  inv.paymentConfirmedAt=now;
+  inv.issuedAt=inv.issuedAt||now;
+  // 미수금 정산완료 처리
+  var _r=state.receivables.find(function(r){return r.invoiceId===id;});
+  if(_r){ _r.paid=_r.amount||getTotal(inv); _r.status='paid'; dbSaveReceivable(_r); }
+  saveState();
+  dbSaveInvoice(inv);
+  renderAll();
+  toast('✅ 정산완료 처리되었습니다. 처리이력에서 확인하세요.','success');
+  showPage('history'); setHistTab('invoice');
+}
+
+
 var _anCharts = {}; // Chart.js 인스턴스 보관 (destroy 용)
 
 // 차트 컬러 팔레트
@@ -8644,6 +8664,7 @@ document.addEventListener('DOMContentLoaded', function() {
       if(act==='edit-invoice') openEditInvoiceModal(id);
       if(act==='del-invoice') deleteInvoice(id);
       if(act==='manual-issued') manualMarkIssued(id);
+      if(act==='force-settle')   forceSettle(id);
       if(act==='edit-client') openClientModal(id);
       if(act==='del-client')  deleteClient(id);
       if(act==='payment')     openPaymentModal(id);
