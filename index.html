@@ -3761,12 +3761,15 @@ function renderIssueReady(){
     var failReasonHtml=isFailed&&inv.issueFailReason
       ?'<div style="font-size:11px;color:var(--red);margin-top:3px;max-width:180px;white-space:normal">⚠ '+inv.issueFailReason.substring(0,60)+(inv.issueFailReason.length>60?'…':'')+'</div>':''
     var rowBg=isFailed?';background:rgba(240,68,82,.04)':isPreIssue?';background:rgba(79,142,247,.05)':'';
+    var _isAdminIR = state.currentUser && state.currentUser.role==='admin';
+    var _manualBtn = _isAdminIR ? '<button class="btn btn-sm" data-action="manual-issued" data-id="'+inv.id+'" style="background:var(--green);color:#fff;font-size:11px" title="[어드민] 볼타에서 발행됐지만 앱에 미반영된 경우 사용">✓ 수동완료</button>' : '';
+    var _manualBtnGray = _isAdminIR ? '<button class="btn btn-sm" data-action="manual-issued" data-id="'+inv.id+'" style="background:var(--surface2);color:var(--text2);font-size:11px;border:1px solid var(--border)" title="[어드민] 볼타에서 발행됐지만 앱에 미반영된 경우 사용">✓ 수동완료</button>' : '';
     var actionBtns=isFailed
       ?'<button class="btn btn-warning btn-sm" data-action="issue" data-id="'+inv.id+'" style="background:var(--yellow);color:#111"> 재시도</button>'
-       +'<button class="btn btn-sm" data-action="manual-issued" data-id="'+inv.id+'" style="background:var(--green);color:#fff;font-size:11px" title="볼타에서 발행됐지만 앱에 미반영된 경우 사용">✓ 수동완료</button>'
+       +_manualBtn
        +'<button class="btn btn-danger btn-sm" data-action="del-invoice" data-id="'+inv.id+'">삭제</button>'
       :'<button class="btn btn-primary btn-sm" data-action="issue" data-id="'+inv.id+'"> 발행</button>'
-       +'<button class="btn btn-sm" data-action="manual-issued" data-id="'+inv.id+'" style="background:var(--surface2);color:var(--text2);font-size:11px;border:1px solid var(--border)" title="볼타에서 발행됐지만 앱에 미반영된 경우 사용">✓ 수동완료</button>'
+       +_manualBtnGray
        +'<button class="btn btn-danger btn-sm" data-action="del-invoice" data-id="'+inv.id+'">삭제</button>';
     return '<tr class="clickable-row '+rowCls+'" data-action="open-detail" data-id="'+inv.id+'" style="cursor:pointer'+rowBg+'">'
       +'<td><strong>'+inv.client.org+'</strong>'+preIssueBadge+failBadge+'<br><span style="font-size:12px;color:var(--text3)">'+inv.client.bizno+'</span>'+failReasonHtml+'</td>'
@@ -3813,11 +3816,12 @@ function renderPending(){
       : inv.preIssued
         ? '<span style="font-size:11px;font-weight:700;color:#fff;background:var(--accent);border-radius:4px;padding:1px 6px">선발행완료</span>'
         : '<span style="font-size:11px;font-weight:600;color:var(--accent)">세발건</span>';
-    // 선발행 완료 건: 이체 매칭 버튼 + 강제정산완료 버튼
+    // 선발행 완료 건: 이체 매칭 버튼 + 강제정산완료 버튼 (어드민만)
     // 일반 pending 건: 입금 확인 버튼
+    var _isAdminPending = state.currentUser && state.currentUser.role==='admin';
     var actionBtn = inv.preIssued
       ? '<button class="btn btn-primary btn-sm" data-action="open-detail" data-id="'+inv.id+'" style="background:var(--accent2)">💰 입금 매칭</button>'
-       +'<button class="btn btn-sm" data-action="force-settle" data-id="'+inv.id+'" style="background:var(--green);color:#fff;font-size:11px" title="이체 매칭 없이 바로 정산완료 처리">✓ 정산완료</button>'
+       +(_isAdminPending ? '<button class="btn btn-sm" data-action="force-settle" data-id="'+inv.id+'" style="background:var(--green);color:#fff;font-size:11px" title="[어드민] 이체 매칭 없이 바로 정산완료 처리">✓ 정산완료</button>' : '')
       : '<button class="btn btn-primary btn-sm" data-action="open-detail" data-id="'+inv.id+'">입금 확인</button>';
     return '<tr class="clickable-row" data-action="open-detail" data-id="'+inv.id+'" style="cursor:pointer;'+rowBg+'">'
       +'<td style="text-align:center">'+taxIssueBadge+'</td>'
@@ -3931,9 +3935,10 @@ function renderHistory(){
     var dateCell=isSettle2?(inv.paymentConfirmedAt||inv.issuedAt||'-'):(inv.issuedAt||inv.createdAt||'-').substring(0,16);
 
     var dlBtn='<button class="btn btn-ghost btn-sm" style="padding:5px 8px;font-size:11px" onclick="event.stopPropagation();openInvoicePreview(\''+inv.id+'\')" title="미리보기/저장">🔍 미리보기</button>';
-    // 선발행 입금대기 건: 처리이력에서도 정산완료 처리 버튼 표시
-    var forceSettleBtn = (inv.preIssued && !inv.paymentConfirmedAt)
-      ? '<button class="btn btn-sm" style="padding:5px 8px;font-size:11px;background:var(--green);color:#fff;margin-left:4px" onclick="event.stopPropagation();forceSettle(\''+inv.id+'\')" title="이체 매칭 없이 정산완료 처리">✓ 정산완료</button>'
+    // 선발행 입금대기 건: 어드민만 처리이력에서 정산완료 버튼 표시
+    var _isAdminHist = state.currentUser && state.currentUser.role==='admin';
+    var forceSettleBtn = (_isAdminHist && inv.preIssued && !inv.paymentConfirmedAt)
+      ? '<button class="btn btn-sm" style="padding:5px 8px;font-size:11px;background:var(--green);color:#fff;margin-left:4px" onclick="event.stopPropagation();forceSettle(\''+inv.id+'\')" title="[어드민] 이체 매칭 없이 정산완료 처리">✓ 정산완료</button>'
       : '';
     return '<tr class="hist-preview-row" style="cursor:pointer" data-preview-id="'+inv.id+'">'
       +'<td>'+typeBadge+'</td>'
@@ -5413,7 +5418,9 @@ function doneNoTax(id){
 }
 
 // ✅ 수동 발행완료 처리 - 볼타에서 발행됐지만 앱에 미반영된 경우
-function manualMarkIssued(id){  var inv=state.invoices.find(function(x){return x.id===id;}); if(!inv)return;
+function manualMarkIssued(id){
+  if(!state.currentUser || state.currentUser.role!=='admin'){ toast('어드민만 사용 가능합니다','error'); return; }
+  var inv=state.invoices.find(function(x){return x.id===id;}); if(!inv)return;
   var key = prompt('볼타 발행키(issuanceKey)를 입력하세요.\n(모르면 취소 → 직접 처리이력에서 확인)');
   if(key === null) return; // 취소
   if(!confirm('['+inv.client.org+'] '+fmt(getTotal(inv))+'원\n\n발행완료로 수동 처리하시겠습니까?\n발행키: '+(key||'미입력')+'\n\n⚠️ 볼타에서 실제 발행된 경우에만 사용하세요.')) return;
@@ -5432,6 +5439,7 @@ function manualMarkIssued(id){  var inv=state.invoices.find(function(x){return x
 
 // 이체확인대기에서 선발행 건을 이체 매칭 없이 강제 정산완료 처리
 function forceSettle(id){
+  if(!state.currentUser || state.currentUser.role!=='admin'){ toast('어드민만 사용 가능합니다','error'); return; }
   var inv=state.invoices.find(function(x){return x.id===id;}); if(!inv)return;
   var label='['+inv.client.org+'] '+fmt(getTotal(inv))+'원';
   if(!confirm(label+'\n\n이체 매칭 없이 바로 정산완료 처리하시겠습니까?\n\n실제 입금이 확인된 경우에만 사용하세요.')) return;
