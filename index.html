@@ -5317,6 +5317,7 @@ async function confirmIssue(){
           btn.textContent='선발행 완료 ✓'; toast('선발행 완료! 이체확인대기에서 입금 매칭하세요.','success');
         }
       } else {
+        // 일반 세발건 발행 완료 → 처리이력으로 자동 이동
         inv.status='issued';
         autoCreateReceivable(inv);
         if(_keyMissing) {
@@ -5324,7 +5325,7 @@ async function confirmIssue(){
           btn.textContent='발행 완료 (키 확인 필요)'; toast('⚠️ 발행 완료 - 발행키 확인 필요','warning');
         } else {
           ae.innerHTML='<div class="alert alert-success">✅ 세금계산서가 성공적으로 발행되었습니다!</div>';
-          btn.textContent='발행 완료 ✓'; toast('발행 완료! 미수금 자동 등록됨','success');
+          btn.textContent='발행 완료 ✓'; toast('발행 완료! 처리이력으로 이동합니다','success');
         }
       }
       // ✅ 1단계: 로컬 저장 + 즉시 화면 갱신 (DB 응답 기다리지 않음)
@@ -5333,9 +5334,15 @@ async function confirmIssue(){
       renderAll();
       _isIssuingInProgress=false; // 🔓 플래그 해제 (즉시 - 다음 발행 바로 가능)
       _modalCloseBtns.forEach(function(b){ b.disabled=false; b.style.pointerEvents=''; b.style.opacity=''; });
-      closeModal('issueModal'); // ← 즉시 닫기 (1800ms 딜레이 제거 → 연속발행 지원)
-      // 선발행 건: 이체확인대기 화면으로 자동 이동 (입금 매칭 안내)
-      if(inv.preIssue) { setTimeout(function(){ showPage('pending'); }, 300); }
+      closeModal('issueModal'); // ← 즉시 닫기
+      // 발행 완료 후 페이지 자동 이동
+      if(inv.preIssue) {
+        // 선발행: 이체확인대기로 이동
+        setTimeout(function(){ showPage('pending'); }, 300);
+      } else {
+        // 일반 세발건: 처리이력으로 이동 (계산서 발행 이력 탭)
+        setTimeout(function(){ showPage('history'); setHistTab('invoice'); }, 300);
+      }
       // ✅ 2단계: DB 저장은 백그라운드 (화면 블로킹 없음)
       var _apiInv=state.invoices.find(function(i){return i.id===pendingIssueId;});
       if(_apiInv) {
