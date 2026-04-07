@@ -3176,20 +3176,69 @@ async function doLogin(){
   initApp();
 }
 
-// ── 실시간 동기화 (30초마다 DB 폴링)
+// ── 실시간 동기화
 var syncInterval = null;
+var _syncPaused = false;  // 발행 중 폴링 일시정지 플래그
+
 function startSync(){
   if(syncInterval) clearInterval(syncInterval);
   syncInterval = setInterval(async function(){
     if(!state.currentUser) return;
+    if(_syncPaused) return;  // 🔒 발행 중에는 폴링 중단
     try {
-      await loadFromDB();
+      // 폴링 시 발행중 건은 DB 데이터로 덮어쓰지 않음
+      await loadFromDB_safe();
       renderAll();
     } catch(e){}
-  }, 10000);
+  }, 30000);  // 30초로 늘려 충돌 줄임
 }
 function stopSync(){
   if(syncInterval){ clearInterval(syncInterval); syncInterval=null; }
+}
+
+// 폴링 전용 loadFromDB: 발행중(_isIssuingInProgress) 또는 issued인 건은 메모리 우선
+async function loadFromDB_safe() {
+  const safe = async (fn) => { try { return await fn(); } catch(e) { return {data:null}; } };
+  const [inv, cli, trs, rcv, usr, cfg, out, fil] = await Promise.all([
+    safe(()=>sb.from('invoices').select('*')),
+    safe(()=>sb.from('clients').select('*')),
+    safe(()=>sb.from('transfers').select('*')),
+    safe(()=>sb.from('receivables').select('*')),
+    safe(()=>sb.from('users').select('*')),
+    safe(()=>sb.from('settings').select('*').eq('key','main').single()),
+    safe(()=>sb.from('outsources').select('*')),
+    safe(()=>sb.from('files').select('*').order('created_at', {ascending:false}))
+  ]);
+  if(inv.data) {
+    const dbInvoices = inv.data.map(r=>r.data);
+    // 메모리에서 issued/issue-failed 상태인 건은 DB 버전보다 메모리 우선
+    state.invoices = dbInvoices.map(function(dbInv){
+      var memInv = state.invoices.find(function(m){ return m.id === dbInv.id; });
+      if(!memInv) return dbInv;
+      // 메모리가 더 최신 상태인 경우 유지 (발행완료/실패는 되돌리지 않음)
+      var memStatus = memInv.status;
+      var dbStatus  = dbInv.status;
+      var statusPriority = { 'issued':10, 'issue-failed':8, 'payment-confirmed':5, 'pre-issue':4, 'pending':3 };
+      var memP = statusPriority[memStatus] || 0;
+      var dbP  = statusPriority[dbStatus]  || 0;
+      // 메모리 우선: 더 진행된 상태이면 메모리 유지
+      if(memP >= dbP) return memInv;
+      return dbInv;
+    });
+    // DB에는 있는데 메모리에 없는 신규 건 추가
+    dbInvoices.forEach(function(dbInv){
+      if(!state.invoices.find(function(m){ return m.id===dbInv.id; })){
+        state.invoices.push(dbInv);
+      }
+    });
+  }
+  if(cli.data)  state.clients     = cli.data.map(r=>({id:r.id,org:r.org,bizno:r.bizno,rep:r.rep,email:r.email,taxEmail:r.tax_email,address:r.address,bizType:r.biz_type,bizItem:r.biz_item,contactName:r.contact_name,contactTitle:r.contact_title,contactTel:r.contact_tel,memo:r.memo,createdAt:r.created_at}));
+  if(trs.data)  state.transfers   = trs.data.map(r=>r.data);
+  if(rcv.data)  state.receivables = rcv.data.map(r=>r.data);
+  if(usr.data && usr.data.length) state.users = usr.data.map(r=>({id:r.id,name:r.name,pw:r.pw,role:r.role,tel:r.tel||''}));
+  if(out.data)  state.outsources  = out.data.map(r=>r.data);
+  if(fil.data)  state.files       = fil.data.map(r=>r.data);
+  if(cfg.data)  state.settings    = cfg.data.value;
 }
 function doLogout(){
   stopSync();
@@ -3718,15 +3767,19 @@ function renderUserDashboard() {
 // ISSUE READY (계산서 발행 대기)
 // ══════════════════════════════════════════
 function renderIssueReady(){
-  // ✅ 발행 완료된 건은 무조건 제외
-  // txId 차단 목록: IssuanceKey_..., BOLTA_...(확인필요 포함), ik_... 형식은 이미 볼타에 제출된 것
+  // ✅ 발행 완료 여부 판단 함수 (txId 기반)
+  // IssuanceKey_..., BOLTA_..., ik_... 형식 = 볼타에 실제 제출된 발행키
   function _isTxBlocked(txId){
     if(!txId || txId==='정산완료' || txId==='OK') return false;
-    return txId.startsWith('IssuanceKey') || txId.startsWith('BOLTA') || txId.startsWith('ik_');
+    return txId.startsWith('IssuanceKey') || txId.startsWith('BOLTA') || txId.startsWith('ik_') || txId.startsWith('MANUAL_');
   }
   var list=state.invoices.filter(function(i){
-    if(i.status==='issued') return false;                         // 발행완료 제외
-    if(i.preIssued && _isTxBlocked(i.txId)) return false;        // 선발행 완료/시도 제외
+    // 1순위: status=issued 는 무조건 제외 (발행완료)
+    if(i.status==='issued') return false;
+    // 2순위: txId가 이미 유효한 발행키면 status 무관하게 제외
+    //        (issue-failed 상태라도 볼타에는 발행된 것)
+    if(_isTxBlocked(i.txId)) return false;
+    // 3순위: 표시 대상 상태만 포함
     return i.status==='payment-confirmed'||i.status==='pre-issue'||i.status==='issue-failed';
   });
   var tbody=$('issueReadyTbody'); if(!tbody)return;
@@ -5149,16 +5202,17 @@ async function confirmIssue(){
 
   // 여기부터 실제 발행 시작 - 플래그 세트 및 버튼 잠금
   _isIssuingInProgress = true;
+  _syncPaused = true;  // 🔒 발행 중 폴링 일시정지
   btn.disabled=true; btn.textContent='⏳ 발행 중... (클릭 금지)';
   // 모달 닫기 버튼도 임시 비활성 (발행 중 닫기 방지)
   var _modalCloseBtns = document.querySelectorAll('#issueModal .modal-close, #issueModal [onclick*="closeModal"]');
   _modalCloseBtns.forEach(function(b){ b.disabled=true; b.style.pointerEvents='none'; b.style.opacity='0.3'; });
-  // 헬퍼: UI 상태 전체 복원 (모든 열반 탈출 시 공통 사용)
+  // 헬퍼: UI 상태 전체 복원 (모든 탈출 경로에서 공통 사용)
   function _resetIssueUI(btnText2) {
     _isIssuingInProgress = false;
+    _syncPaused = false;  // 🔓 폴링 재개
     if(btn){ btn.disabled=false; btn.textContent = btnText2||' 세금계산서 발행'; }
     try{ _modalCloseBtns.forEach(function(b2){ b2.disabled=false; b2.style.pointerEvents=''; b2.style.opacity=''; }); }catch(ex){}
-    // 발행중 행 상태 복원 (모달 X 닫기 포함 모든 경우)
     try{ renderIssueReady(); }catch(ex2){}
   }
   if(!state.settings.apiKey){ae.innerHTML='<div class="alert alert-error"> API 키가 설정되지 않았습니다.</div>';_resetIssueUI();return;}
@@ -5389,30 +5443,32 @@ async function confirmIssue(){
           btn.textContent='발행 완료 ✓'; toast('발행 완료! 처리이력으로 이동합니다','success');
         }
       }
-      // ✅ 1단계: 로컬 저장 + 즉시 화면 갱신 (DB 응답 기다리지 않음)
+      // ✅ 저장 순서: 메모리 저장 → DB await 저장 → UI 갱신 → 모달 닫기
+      // (DB 저장 완료 전에 폴링이 덮어쓰지 않도록 await로 보장)
       saveState();
-      renderIssueReady();   // ← 발행 성공 즉시 대기열에서 제거
-      renderAll();
-      _isIssuingInProgress=false; // 🔓 플래그 해제 (즉시 - 다음 발행 바로 가능)
+      // DB 저장을 await로 완전히 보장 (완료 전까지 폴링은 _syncPaused로 차단됨)
+      var _apiInv=state.invoices.find(function(i){return i.id===pendingIssueId;});
+      try {
+        if(_apiInv) await dbSaveInvoice(_apiInv);
+        var _ar=state.receivables.find(function(r){return r.invoiceId===(_apiInv&&_apiInv.id);});
+        if(_ar) await dbSaveReceivable(_ar);
+        console.log('[발행 완료] DB 저장 완료:', _apiInv&&_apiInv.id, _apiInv&&_apiInv.txId);
+      } catch(dbErr) {
+        console.error('[발행 완료] DB 저장 오류 (로컬은 저장됨):', dbErr);
+      }
+      // DB 저장 완료 후 UI 갱신 및 폴링 재개
+      _isIssuingInProgress=false;
+      _syncPaused = false;  // 🔓 DB 저장 완료 후 폴링 재개
       _modalCloseBtns.forEach(function(b){ b.disabled=false; b.style.pointerEvents=''; b.style.opacity=''; });
-      closeModal('issueModal'); // ← 즉시 닫기
+      renderIssueReady();   // 발행 성공 즉시 대기열에서 제거
+      renderAll();
+      closeModal('issueModal');
       // 발행 완료 후 페이지 자동 이동
       if(inv.preIssue) {
-        // 선발행: 이체확인대기로 이동
         setTimeout(function(){ showPage('pending'); }, 300);
       } else {
-        // 일반 세발건: 처리이력으로 이동 (계산서 발행 이력 탭)
         setTimeout(function(){ showPage('history'); setHistTab('invoice'); }, 300);
       }
-      // ✅ 2단계: DB 저장은 백그라운드 (화면 블로킹 없음)
-      var _apiInv=state.invoices.find(function(i){return i.id===pendingIssueId;});
-      if(_apiInv) {
-        dbSaveInvoice(_apiInv)
-          .then(function(){ console.log('[발행 완료] DB 저장 완료:', _apiInv.id, _apiInv.txId); })
-          .catch(function(dbErr){ console.error('[발행 완료] DB 저장 오류 (로컬은 저장됨):', dbErr); });
-      }
-      var _ar=state.receivables.find(function(r){return r.invoiceId===(_apiInv&&_apiInv.id);});
-      if(_ar) { dbSaveReceivable(_ar).catch(function(e){ console.error('[미수금 DB 저장 오류]', e); }); }
     } else {
       // Bolta 에러 상세 메시지 추출
       var failMsg = errMsg || JSON.stringify(data);
@@ -5456,7 +5512,7 @@ async function confirmIssue(){
     } catch(e3){ console.error('[발행 예외 처리 중 오류]', e3); }
     // ✅ 예외 발생 → localStorage 마킹 제거
     try{ localStorage.removeItem(_issueAttemptKey); }catch(ex){}
-    try{ _resetIssueUI(); } catch(e2){ _isIssuingInProgress=false; if(btn){ btn.disabled=false; btn.textContent=' 세금계산서 발행'; } }
+    try{ _resetIssueUI(); } catch(e2){ _isIssuingInProgress=false; _syncPaused=false; if(btn){ btn.disabled=false; btn.textContent=' 세금계산서 발행'; } }
   }
 }
 function doneNoTax(id){
@@ -8699,9 +8755,10 @@ document.addEventListener('DOMContentLoaded', function() {
     const closeEl = e.target.closest('[data-close]');
     if (closeEl) {
       closeModal(closeEl.dataset.close);
-      // 발행 모달을 X/취소로 닫을 때 → 발행중 플래그 해제 + 행 상태 복원
+      // 발행 모달을 X/취소로 닫을 때 → 발행중 플래그 해제 + 폴링 재개 + 행 상태 복원
       if(closeEl.dataset.close === 'issueModal') {
         if(_isIssuingInProgress) { _isIssuingInProgress = false; }
+        _syncPaused = false;  // 🔓 모달 닫기 시 폴링 반드시 재개
         renderIssueReady();
       }
       return;
