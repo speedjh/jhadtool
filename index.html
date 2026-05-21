@@ -2888,6 +2888,10 @@ const SUPA_URL = 'https://vkjujogdlxztzsscrrzu.supabase.co';
 const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZranVqb2dkbHh6dHpzc2Nycnp1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE5NDQxMzEsImV4cCI6MjA4NzUyMDEzMX0.hkYH4lDQnbfRcuWoxdim3P1_LxmdcDhI_l1mnt3q4PA';
 const sb = supabase.createClient(SUPA_URL, SUPA_KEY);
 
+// ── 이체내역 매칭 표시용 전체 invoice 캐시 (role 필터 없이 DB 원본 전체 보관)
+// renderTransfers()에서 state.invoices 대신 이 캐시로 invoice 조회 → 담당자 무관 전체 표시
+var _allInvoicesCache = [];
+
 // DB에서 전체 데이터 불러오기
 async function loadFromDB() {
   // 각 테이블 독립적으로 로드 - 한 테이블 실패해도 나머지 계속 진행
@@ -2902,7 +2906,11 @@ async function loadFromDB() {
     safe(()=>sb.from('outsources').select('*')),
     safe(()=>sb.from('files').select('*').order('created_at', {ascending:false}))
   ]);
-  if(inv.data)  state.invoices    = inv.data.map(r=>r.data);
+  if(inv.data)  {
+    state.invoices    = inv.data.map(r=>r.data);
+    // 전체 invoice 캐시 갱신 (이체내역 매칭 표시용 - role 필터 없는 DB 원본)
+    _allInvoicesCache = inv.data.map(r=>r.data);
+  }
   if(cli.data)  state.clients     = cli.data.map(r=>({id:r.id,org:r.org,bizno:r.bizno,rep:r.rep,email:r.email,taxEmail:r.tax_email,address:r.address,bizType:r.biz_type,bizItem:r.biz_item,contactName:r.contact_name,contactTitle:r.contact_title,contactTel:r.contact_tel,memo:r.memo,createdAt:r.created_at}));
   if(trs.data)  state.transfers   = trs.data.map(r=>r.data);
   if(rcv.data)  state.receivables = rcv.data.map(r=>r.data);
@@ -2915,9 +2923,15 @@ async function loadFromDB() {
 // 청구 저장
 async function dbSaveInvoice(inv) {
   await sb.from('invoices').upsert({id:inv.id, data:inv, updated_at:new Date().toISOString()});
+  // _allInvoicesCache 로컬 동기화 (저장 즉시 캐시에도 반영)
+  var cIdx = _allInvoicesCache.findIndex(function(c){ return c.id === inv.id; });
+  if(cIdx >= 0) _allInvoicesCache[cIdx] = inv;
+  else _allInvoicesCache.push(inv);
 }
 async function dbDeleteInvoice(id) {
   await sb.from('invoices').delete().eq('id',id);
+  // _allInvoicesCache에서도 제거
+  _allInvoicesCache = _allInvoicesCache.filter(function(c){ return c.id !== id; });
 }
 
 // 이체 저장
@@ -3211,6 +3225,8 @@ async function loadFromDB_safe() {
   ]);
   if(inv.data) {
     const dbInvoices = inv.data.map(r=>r.data);
+    // ── 전체 invoice 캐시 갱신 (이체내역 매칭 표시용 - role 필터 없는 DB 원본)
+    _allInvoicesCache = dbInvoices.slice();
     // 메모리에서 issued/issue-failed 상태인 건은 DB 버전보다 메모리 우선
     state.invoices = dbInvoices.map(function(dbInv){
       var memInv = state.invoices.find(function(m){ return m.id === dbInv.id; });
@@ -3380,10 +3396,12 @@ function renderDashboard(){
     .sort(function(a,b){return (b.date||'').localeCompare(a.date||'');}).slice(0,5);
   $('dashTransferTbody').innerHTML=recentTransfers.length
     ?recentTransfers.map(function(t){
-        var matchedInv=t.invoiceId?state.invoices.find(function(i){return i.id===t.invoiceId;}):null;
+        // _allInvoicesCache 우선 사용: role 필터 없는 전체 invoice에서 검색
+        var matchedInvCache=t.invoiceId?_allInvoicesCache.find(function(i){return i.id===t.invoiceId;}):null;
+        var matchedInv=matchedInvCache||(t.invoiceId?state.invoices.find(function(i){return i.id===t.invoiceId;}):null);
         var matchCell=matchedInv
           ?'<span style="color:var(--green);font-size:12px"> '+matchedInv.client.org+'</span>'
-          :'<span style="color:var(--text3);font-size:12px">미매칭</span>';
+          :(t.invoiceId?'<span style="color:var(--yellow);font-size:12px"> 매칭됨</span>':'<span style="color:var(--text3);font-size:12px">미매칭</span>');
         return '<tr><td style="color:var(--text3)">'+t.date+'</td><td><strong>'+t.sender+'</strong></td><td class="mono" style="color:var(--green);font-weight:600">'+fmt(t.amount)+'원</td><td style="color:var(--text3);font-size:12px">'+(t.bank||'-')+'</td><td>'+matchCell+'</td></tr>';
       }).join('')
     :'<tr><td colspan="5" style="text-align:center;color:var(--text3);padding:24px">이체 내역이 없습니다</td></tr>';
@@ -7048,7 +7066,10 @@ function renderDetailTransfers(invId, targetAmt){
   $('dpTransferList').innerHTML = transfers.map(function(t){
     var isLinked = t.invoiceId === invId;                          // 이 청구건에 매칭됨
     var isOther  = !!t.invoiceId && t.invoiceId !== invId;         // 다른 청구건에 매칭됨
-    var linkedInv = isOther ? state.invoices.find(function(i){ return i.id===t.invoiceId; }) : null;
+    // _allInvoicesCache 우선 사용 → 다른 담당자 invoice도 이름 표시 가능
+    var linkedInv = isOther
+      ? (_allInvoicesCache.find(function(i){ return i.id===t.invoiceId; }) || state.invoices.find(function(i){ return i.id===t.invoiceId; }))
+      : null;
     var isAmtMatch = t.amount === targetAmt;
 
     // 이미 다른 청구건에 매칭된 경우 클릭 불가
@@ -7247,10 +7268,25 @@ function renderTransfers(){
 
   var tbody = $('transfersTbody'); if(!tbody) return;
   tbody.innerHTML = list.length ? list.map(function(t){
-    var inv = t.invoiceId ? state.invoices.find(function(i){return i.id===t.invoiceId;}) : null;
-    var matchCell = inv
-      ? '<span class="badge badge-green">'+inv.client.org+'<br><span style="font-size:10px;font-weight:400">'+fmt(inv.taxIssue===false?getSupply(inv):getTotal(inv))+'원</span></span>'
-      : '<span style="color:var(--text3)">미매칭</span>';
+    // _allInvoicesCache 우선 사용: role 필터 없는 전체 invoice에서 검색
+    // → 다른 담당자가 매칭한 건도 정상 표시됨
+    var invCache = t.invoiceId ? _allInvoicesCache.find(function(i){return i.id===t.invoiceId;}) : null;
+    var inv = invCache || (t.invoiceId ? state.invoices.find(function(i){return i.id===t.invoiceId;}) : null);
+    var isAdmin = state.currentUser && state.currentUser.role==='admin';
+    var isMyInv = inv && state.currentUser && (inv.managerId===state.currentUser.id || inv.managerName===state.currentUser.name);
+    var matchCell;
+    if(inv){
+      var matchAmt = fmt(inv.taxIssue===false?getSupply(inv):getTotal(inv));
+      var mgrLabel = (!isMyInv && !isAdmin && inv.managerName)
+        ? '<br><span style="font-size:10px;color:rgba(255,255,255,0.75)">담당: '+inv.managerName+'</span>'
+        : '';
+      matchCell = '<span class="badge badge-green">'+inv.client.org+'<br><span style="font-size:10px;font-weight:400">'+matchAmt+'원</span>'+mgrLabel+'</span>';
+    } else if(t.invoiceId) {
+      // invoiceId는 있으나 캐시에서도 못 찾은 경우 (데이터 동기화 지연) → 아이디 표시
+      matchCell = '<span style="color:var(--yellow);font-size:12px"> 매칭됨</span>';
+    } else {
+      matchCell = '<span style="color:var(--text3)">미매칭</span>';
+    }
     var amtText = (t.amount||0) >= 0 ? fmt(t.amount)+'원' : '-'+fmt(Math.abs(t.amount))+'원';
     return '<tr>'
       +'<td style="color:var(--text3)">'+(t.datetime||t.date||'-')+'</td>'
