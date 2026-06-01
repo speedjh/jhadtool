@@ -5805,11 +5805,14 @@ var _mmSelectedTransferIds = new Set(); // 모달 내 선택된 이체 id
 
 function openMultiMatchModal(){
   var ids = Array.from(_pendingMultiSelected);
-  if(ids.length < 2){ toast('합산 매칭은 선발행 청구건을 2건 이상 선택해야 합니다','error'); return; }
-  // 선발행 건만 허용
-  var invs = ids.map(function(id){ return state.invoices.find(function(i){return i.id===id;}); }).filter(Boolean);
-  var nonPre = invs.filter(function(i){ return !i.preIssued; });
-  if(nonPre.length){ toast('합산 매칭은 선발행 완료 건만 선택 가능합니다','error'); return; }
+  if(ids.length < 1){ toast('합산 매칭할 선발행 청구건을 1건 이상 선택해주세요','error'); return; }
+  // _allInvoicesCache 우선 조회 (다른 담당자 건 포함)
+  var _cache = (typeof _allInvoicesCache !== 'undefined' && _allInvoicesCache.length)
+    ? _allInvoicesCache : state.invoices;
+  var invs = ids.map(function(id){
+    return _cache.find(function(i){return i.id===id;}) || state.invoices.find(function(i){return i.id===id;});
+  }).filter(Boolean);
+  if(!invs.length){ toast('선택한 청구건 정보를 찾을 수 없습니다','error'); return; }
 
   _mmSelectedTransferIds.clear();
   var totalAmt = invs.reduce(function(s,i){ return s+getTotal(i); }, 0);
@@ -5869,6 +5872,9 @@ function openMultiMatchModal(){
     }
   }
   _updateMmAmtBox(totalAmt);
+  // 모달 타이틀 동적 업데이트
+  var titleEl = document.querySelector('#multiMatchModal .modal-title');
+  if(titleEl) titleEl.textContent = invs.length > 1 ? '합산 입금 매칭 ('+invs.length+'건)' : '입금 매칭';
   openModal('multiMatchModal');
 }
 
@@ -5908,9 +5914,13 @@ function confirmMultiMatch(){
     if(t) t.invoiceId = invIds[0]; // 대표 invoice에 연결
   });
 
+  var _cc = (typeof _allInvoicesCache!=='undefined'&&_allInvoicesCache.length)?_allInvoicesCache:state.invoices;
   invIds.forEach(function(invId){
-    var inv = state.invoices.find(function(i){return i.id===invId;});
+    var inv = _cc.find(function(i){return i.id===invId;}) || state.invoices.find(function(i){return i.id===invId;});
     if(!inv) return;
+    // state.invoices에도 반영
+    var si = state.invoices.find(function(i){return i.id===invId;});
+    if(si){ si.paymentConfirmedAt = now; si.issuedAt = si.issuedAt || now; }
     inv.paymentConfirmedAt = now;
     inv.issuedAt = inv.issuedAt || now;
     // 미수금 정산
