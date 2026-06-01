@@ -1536,15 +1536,24 @@
         <div style="display:flex;gap:8px;align-items:center">
           <button id="pendingSortBtn" onclick="toggleSort('pending')" class="btn btn-sm" style="background:var(--surface2);border:1px solid var(--border);color:var(--text2);font-size:12px;padding:5px 12px" title="등록일 기준 정렬">↓ 최신순</button>
         </div>
-        <div id="pendingMultiBar" style="display:none;align-items:center;gap:10px;background:var(--accent-dim);border:1px solid var(--accent-glow);border-radius:10px;padding:8px 16px">
-          <span style="font-size:13px;color:var(--accent);font-weight:600" id="pendingMultiInfo">0건 선택</span>
-          <span style="font-size:13px;color:var(--text3)">합산</span>
-          <span style="font-size:14px;font-weight:700;color:var(--accent);font-family:monospace" id="pendingMultiAmt">0원</span>
-          <button class="btn btn-primary btn-sm" onclick="openMultiMatchModal()" style="margin-left:6px">💰 합산 입금 매칭</button>
-          <button class="btn btn-ghost btn-sm" onclick="clearPendingMultiSelect()">✕ 선택 해제</button>
+      </div>
+
+      <!-- 합산 매칭 플로팅 바: 선발행 체크 시 화면 하단 중앙에 sticky로 표시 -->
+      <div id="pendingMultiBar" style="display:none;position:sticky;bottom:28px;left:0;right:0;z-index:120;pointer-events:none">
+        <div style="display:flex;justify-content:center">
+          <div style="pointer-events:auto;display:inline-flex;align-items:center;gap:12px;background:var(--surface);border:1.5px solid var(--accent-glow);border-radius:14px;padding:12px 22px;box-shadow:0 8px 32px rgba(0,0,0,.22),0 0 0 1px var(--accent-glow);backdrop-filter:blur(8px)">
+            <span style="font-size:20px">✅</span>
+            <span style="font-size:13px;color:var(--accent);font-weight:700" id="pendingMultiInfo">0건 선택</span>
+            <span style="width:1px;height:18px;background:var(--border2)"></span>
+            <span style="font-size:12px;color:var(--text3)">청구 합계</span>
+            <span style="font-size:16px;font-weight:800;color:var(--accent);font-family:monospace;letter-spacing:-.02em" id="pendingMultiAmt">0원</span>
+            <button class="btn btn-primary btn-sm" onclick="openMultiMatchModal()" style="font-size:13px;padding:7px 16px;border-radius:8px">💰 합산 입금 매칭</button>
+            <button class="btn btn-ghost btn-sm" onclick="clearPendingMultiSelect()" style="font-size:13px;padding:7px 12px;border-radius:8px;color:var(--text3)">✕ 해제</button>
+          </div>
         </div>
       </div>
-      <div class="table-wrap">
+
+      <div class="table-wrap" style="padding-bottom:80px">
         <table><thead><tr><th style="width:36px"></th><th>세금계산서</th><th>거래처</th><th>담당자</th><th>품목</th><th>공급가액</th><th>세액</th><th>합계</th><th>등록일</th><th>정산 예정일</th><th>메모</th><th>구분</th><th style="width:130px">액션</th></tr></thead>
         <tbody id="pendingTbody"></tbody></table>
       </div>
@@ -3961,7 +3970,7 @@ function _updatePendingMultiBar(){
     var inv = state.invoices.find(function(i){return i.id===id;});
     return s + (inv ? getTotal(inv) : 0);
   }, 0);
-  bar.style.display = cnt > 0 ? 'flex' : 'none';
+  bar.style.display = cnt > 0 ? 'block' : 'none';
   if($('pendingMultiInfo')) $('pendingMultiInfo').textContent = cnt+'건 선택됨';
   if($('pendingMultiAmt'))  $('pendingMultiAmt').textContent  = fmt(totalAmt)+'원';
 }
