@@ -1450,7 +1450,13 @@
           <div class="card" style="margin-bottom:16px">
             <div class="section-title">거래처 정보 (공급받는자)</div>
             <div class="form-grid">
-              <div class="form-group"><label>거래처 선택</label><select id="clientSelect"><option value="">직접 입력</option></select></div>
+              <div class="form-group" style="grid-column:1/-1">
+                <label>거래처 선택</label>
+                <div style="display:flex;gap:6px;align-items:center">
+                  <input type="text" id="clientSearchInp" placeholder="🔍 거래처명 또는 사업자번호 검색..." style="flex:1;padding:7px 10px;border:1px solid var(--border);border-radius:6px;background:var(--surface2);color:var(--text1);font-size:13px" oninput="filterClientSelect(this.value)">
+                  <select id="clientSelect" style="flex:1.2"><option value="">직접 입력</option></select>
+                </div>
+              </div>
               <div class="form-group"><label>사업자번호 *</label><input type="text" id="inp-bizno" placeholder="000-00-00000"></div>
               <div class="form-group"><label>상호 *</label><input type="text" id="inp-orgname" placeholder="(주)거래처"></div>
               <div class="form-group"><label>대표자명 *</label><input type="text" id="inp-repname" placeholder="홍길동"></div>
@@ -1525,10 +1531,57 @@
 
     <!-- Pending (이체 확인 대기 - 발행예정 + 미발행 통합) -->
     <div class="page" id="page-pending">
-      <div class="page-header"><div><div class="page-title">이체 확인 대기</div><div class="page-sub">입금 확인 후 처리하세요</div></div></div>
+      <div class="page-header">
+        <div><div class="page-title">이체 확인 대기</div><div class="page-sub">입금 확인 후 처리하세요</div></div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <button id="pendingSortBtn" onclick="toggleSort('pending')" class="btn btn-sm" style="background:var(--surface2);border:1px solid var(--border);color:var(--text2);font-size:12px;padding:5px 12px" title="등록일 기준 정렬">↓ 최신순</button>
+        </div>
+        <div id="pendingMultiBar" style="display:none;align-items:center;gap:10px;background:var(--accent-dim);border:1px solid var(--accent-glow);border-radius:10px;padding:8px 16px">
+          <span style="font-size:13px;color:var(--accent);font-weight:600" id="pendingMultiInfo">0건 선택</span>
+          <span style="font-size:13px;color:var(--text3)">합산</span>
+          <span style="font-size:14px;font-weight:700;color:var(--accent);font-family:monospace" id="pendingMultiAmt">0원</span>
+          <button class="btn btn-primary btn-sm" onclick="openMultiMatchModal()" style="margin-left:6px">💰 합산 입금 매칭</button>
+          <button class="btn btn-ghost btn-sm" onclick="clearPendingMultiSelect()">✕ 선택 해제</button>
+        </div>
+      </div>
       <div class="table-wrap">
-        <table><thead><tr><th>세금계산서</th><th>거래처</th><th>담당자</th><th>품목</th><th>공급가액</th><th>세액</th><th>합계</th><th>등록일</th><th>정산 예정일</th><th>메모</th><th>구분</th><th style="width:130px">액션</th></tr></thead>
+        <table><thead><tr><th style="width:36px"></th><th>세금계산서</th><th>거래처</th><th>담당자</th><th>품목</th><th>공급가액</th><th>세액</th><th>합계</th><th>등록일</th><th>정산 예정일</th><th>메모</th><th>구분</th><th style="width:130px">액션</th></tr></thead>
         <tbody id="pendingTbody"></tbody></table>
+      </div>
+    </div>
+
+    <!-- 합산 입금 매칭 모달 -->
+    <div class="modal-overlay" id="multiMatchModal">
+      <div class="modal" style="width:640px;max-height:85vh;overflow-y:auto">
+        <div class="modal-header">
+          <div class="modal-title">합산 입금 매칭</div>
+          <button class="modal-close" data-close="multiMatchModal">&#x2715;</button>
+        </div>
+        <div style="padding:0 4px 4px">
+          <!-- 선택된 청구건 요약 -->
+          <div style="background:var(--surface2);border-radius:8px;padding:12px 16px;margin-bottom:16px">
+            <div style="font-size:12px;font-weight:600;color:var(--text3);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">선택된 청구건</div>
+            <div id="mmInvoiceSummary"></div>
+            <div style="display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--border);margin-top:10px;padding-top:10px">
+              <span style="font-size:13px;color:var(--text2)">청구 합계</span>
+              <span style="font-size:16px;font-weight:700;color:var(--accent);font-family:monospace" id="mmTotalAmt">0원</span>
+            </div>
+          </div>
+          <!-- 입금 내역 선택 -->
+          <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:8px">입금 내역 선택 <span style="font-size:11px;font-weight:400;color:var(--text3)">(복수 선택 가능 — 합산 금액이 청구 합계와 일치해야 처리)</span></div>
+          <div id="mmTransferList" style="max-height:260px;overflow-y:auto;display:flex;flex-direction:column;gap:6px"></div>
+          <!-- 금액 매칭 상태 -->
+          <div style="background:var(--surface2);border-radius:8px;padding:12px 16px;margin-top:14px" id="mmAmtBox">
+            <div style="display:flex;justify-content:space-between;margin-bottom:4px"><span style="font-size:13px;color:var(--text3)">선택 입금 합산</span><span style="font-size:14px;font-weight:700" id="mmSelAmt">0원</span></div>
+            <div style="display:flex;justify-content:space-between"><span style="font-size:13px;color:var(--text3)">청구 합계</span><span style="font-size:14px;font-weight:700;color:var(--accent)" id="mmReqAmt">0원</span></div>
+            <div style="display:flex;justify-content:space-between;border-top:1px solid var(--border);margin-top:8px;padding-top:8px"><span style="font-size:13px;color:var(--text3)">차액</span><span style="font-size:14px;font-weight:700" id="mmDiffAmt">0원</span></div>
+          </div>
+          <div style="font-size:12px;color:var(--text3);margin-top:6px" id="mmStatusMsg"></div>
+        </div>
+        <div class="flex gap-2 mt-4" style="justify-content:flex-end;padding:0 4px">
+          <button class="btn btn-ghost" data-close="multiMatchModal">취소</button>
+          <button class="btn btn-primary" id="mmConfirmBtn" disabled onclick="confirmMultiMatch()"> 합산 매칭 처리</button>
+        </div>
       </div>
     </div>
 
@@ -1538,6 +1591,7 @@
     <div class="page" id="page-issue-ready">
       <div class="page-header">
         <div><div class="page-title">계산서 발행 대기</div><div class="page-sub">입금 확인 완료된 건 및 선발행 요청 건 — 세금계산서를 발행하세요</div></div>
+        <button id="issueReadySortBtn" onclick="toggleSort('issue-ready')" class="btn btn-sm" style="background:var(--surface2);border:1px solid var(--border);color:var(--text2);font-size:12px;padding:5px 12px" title="등록일 기준 정렬">↓ 최신순</button>
       </div>
       <div class="table-wrap">
         <table><thead><tr><th>거래처</th><th>담당자</th><th>품목</th><th>공급가액</th><th>세액</th><th>합계</th><th>입금확인일</th><th>정산 예정일</th><th>메모</th><th style="width:100px">액션</th></tr></thead>
@@ -1550,6 +1604,7 @@
       <div class="page-header">
         <div><div class="page-title">처리 이력</div><div class="page-sub">입금 정산 및 계산서 발행 내역</div></div>
         <div class="flex gap-2" style="align-items:center;flex-wrap:wrap">
+          <button id="historySortBtn" onclick="toggleSort('history')" class="btn btn-sm" style="background:var(--surface2);border:1px solid var(--border);color:var(--text2);font-size:12px;padding:5px 12px" title="처리일 기준 정렬">↓ 최신순</button>
           <select id="historyManagerFilter" style="width:130px"><option value="">전체 담당자</option></select>
           <div style="display:flex;border:1px solid var(--border2);border-radius:8px;overflow:hidden">
             <button id="histFilterModeMonth" class="btn btn-sm hist-filter-mode-active" style="border-radius:0;border:none;padding:7px 14px;font-size:12px">월별</button>
@@ -1585,6 +1640,7 @@
       <div class="page-header">
         <div><div class="page-title">이체 내역</div><div class="page-sub">입금 · 출금 내역 · 직접 등록</div></div>
         <div class="flex gap-2" style="align-items:center">
+          <button id="transfersSortBtn" onclick="toggleSort('transfers')" class="btn btn-sm" style="background:var(--surface2);border:1px solid var(--border);color:var(--text2);font-size:12px;padding:5px 12px" title="입금일시 기준 정렬">↓ 최신순</button>
           <button id="pbLoadTransferBtn" class="btn btn-primary" onclick="loadPopbillTransfers()">내역 불러오기</button>
           <button id="addTransferBtn" class="btn btn-ghost">＋ 직접 등록</button>
         </div>
@@ -1644,6 +1700,9 @@
       <div class="page-header">
         <div><div class="page-title">거래처 관리</div><div class="page-sub">자주 쓰는 거래처를 저장하세요</div></div>
         <button id="addClientBtn" class="btn btn-primary">거래처 추가</button>
+      </div>
+      <div style="margin-bottom:14px">
+        <input type="text" id="clientsSearchInp" placeholder="🔍 거래처명, 사업자번호, 담당자 검색..." style="width:100%;max-width:400px;padding:8px 12px;border:1px solid var(--border);border-radius:8px;background:var(--surface2);color:var(--text1);font-size:13px;box-sizing:border-box" oninput="filterClientsTable(this.value)">
       </div>
       <div class="table-wrap">
         <table><thead><tr><th>회사명</th><th>사업자번호</th><th>대표자</th><th>담당자</th><th>연락처</th><th>이메일</th><th>등록일</th><th>액션</th></tr></thead>
@@ -3091,7 +3150,7 @@ function showPage(name){
   if(name==='dashboard')   { renderDashboard(); }
   if(name==='pending')     { renderPending(); renderIssueReady(); }
   if(name==='issue-ready') { renderIssueReady(); }
-  if(name==='clients')     { renderClients(); populateClientSelect(); }
+  if(name==='clients')     { renderClients(); populateClientSelect(); if($('clientsSearchInp')) $('clientsSearchInp').value=''; }
   if(name==='transfers')   { renderTransfers(); }
   if(name==='receivables') { renderReceivables(); }
   if(name==='outsource')   { renderOutsource(); }
@@ -3800,6 +3859,11 @@ function renderIssueReady(){
     // 3순위: 표시 대상 상태만 포함
     return i.status==='payment-confirmed'||i.status==='pre-issue'||i.status==='issue-failed';
   });
+  // 정렬 (createdAt 기준)
+  list.sort(function(a,b){
+    var ta=new Date(a.createdAt||0).getTime(), tb=new Date(b.createdAt||0).getTime();
+    return _sortOrder['issue-ready']==='asc' ? ta-tb : tb-ta;
+  });
   var tbody=$('issueReadyTbody'); if(!tbody)return;
   tbody.innerHTML=list.length?list.map(function(inv){
     var dueHtml='-';
@@ -3835,11 +3899,14 @@ function renderIssueReady(){
     var _isAdminIR = state.currentUser && state.currentUser.role==='admin';
     var _manualBtn = _isAdminIR ? '<button class="btn btn-sm" data-action="manual-issued" data-id="'+inv.id+'" style="background:var(--green);color:#fff;font-size:11px" title="[어드민] 볼타에서 발행됐지만 앱에 미반영된 경우 사용">✓ 수동완료</button>' : '';
     var _manualBtnGray = _isAdminIR ? '<button class="btn btn-sm" data-action="manual-issued" data-id="'+inv.id+'" style="background:var(--surface2);color:var(--text2);font-size:11px;border:1px solid var(--border)" title="[어드민] 볼타에서 발행됐지만 앱에 미반영된 경우 사용">✓ 수동완료</button>' : '';
+    var _editBtn='<button class="btn btn-sm" data-action="edit-invoice" data-id="'+inv.id+'" style="background:var(--surface2);color:var(--text2);border:1px solid var(--border);font-size:11px" title="청구 정보 수정 (계산서 발행 전)">✏ 수정</button>';
     var actionBtns=isFailed
       ?'<button class="btn btn-warning btn-sm" data-action="issue" data-id="'+inv.id+'" style="background:var(--yellow);color:#111"> 재시도</button>'
+       +_editBtn
        +_manualBtn
        +'<button class="btn btn-danger btn-sm" data-action="del-invoice" data-id="'+inv.id+'">삭제</button>'
       :'<button class="btn btn-primary btn-sm" data-action="issue" data-id="'+inv.id+'"> 발행</button>'
+       +_editBtn
        +_manualBtnGray
        +'<button class="btn btn-danger btn-sm" data-action="del-invoice" data-id="'+inv.id+'">삭제</button>';
     return '<tr class="clickable-row '+rowCls+'" data-action="open-detail" data-id="'+inv.id+'" style="cursor:pointer'+rowBg+'">'
@@ -3858,6 +3925,47 @@ function renderIssueReady(){
   :'<tr><td colspan="10" style="text-align:center;color:var(--text3);padding:30px">발행 대기 중인 건이 없습니다</td></tr>';
 }
 
+// ── 정렬 상태 (desc=최신순, asc=오래된순) — 기본 최신순
+var _sortOrder = { pending: 'desc', 'issue-ready': 'desc', history: 'desc', transfers: 'desc' };
+
+function toggleSort(page){
+  _sortOrder[page] = _sortOrder[page]==='desc' ? 'asc' : 'desc';
+  var isDesc = _sortOrder[page]==='desc';
+  var btnMap = { pending:'pendingSortBtn', 'issue-ready':'issueReadySortBtn', history:'historySortBtn', transfers:'transfersSortBtn' };
+  var btn = $(btnMap[page]); if(btn) btn.textContent = isDesc ? '↓ 최신순' : '↑ 오래된순';
+  if(page==='pending')      renderPending();
+  if(page==='issue-ready')  renderIssueReady();
+  if(page==='history')      renderHistory();
+  if(page==='transfers')    renderTransfers();
+}
+
+// ── 이체확인대기 다중선택 상태
+var _pendingMultiSelected = new Set(); // 선택된 invoice id 집합
+
+function togglePendingMultiSelect(invId){
+  if(_pendingMultiSelected.has(invId)) _pendingMultiSelected.delete(invId);
+  else _pendingMultiSelected.add(invId);
+  _updatePendingMultiBar();
+}
+function clearPendingMultiSelect(){
+  _pendingMultiSelected.clear();
+  _updatePendingMultiBar();
+  renderPending();
+}
+function _updatePendingMultiBar(){
+  var bar = $('pendingMultiBar');
+  if(!bar) return;
+  var cnt = _pendingMultiSelected.size;
+  var ids = Array.from(_pendingMultiSelected);
+  var totalAmt = ids.reduce(function(s,id){
+    var inv = state.invoices.find(function(i){return i.id===id;});
+    return s + (inv ? getTotal(inv) : 0);
+  }, 0);
+  bar.style.display = cnt > 0 ? 'flex' : 'none';
+  if($('pendingMultiInfo')) $('pendingMultiInfo').textContent = cnt+'건 선택됨';
+  if($('pendingMultiAmt'))  $('pendingMultiAmt').textContent  = fmt(totalAmt)+'원';
+}
+
 function renderPending(){
   // pending(일반) + issued+preIssued=true+paymentConfirmedAt=null (선발행완료, 입금대기) 표시
   var pending=state.invoices.filter(function(i){
@@ -3866,6 +3974,16 @@ function renderPending(){
     if(i.status==='issued' && i.preIssued && !i.paymentConfirmedAt) return true;
     return false;
   });
+  // 정렬 (createdAt 기준)
+  pending.sort(function(a,b){
+    var ta=new Date(a.createdAt||0).getTime(), tb=new Date(b.createdAt||0).getTime();
+    return _sortOrder['pending']==='asc' ? ta-tb : tb-ta;
+  });
+  // 다중선택 유효성 정리 (목록에서 사라진 건 선택 해제)
+  _pendingMultiSelected.forEach(function(id){
+    if(!pending.find(function(i){return i.id===id;})) _pendingMultiSelected.delete(id);
+  });
+  _updatePendingMultiBar();
   $('pendingTbody').innerHTML=pending.length?pending.map(function(inv){
     var isNoTax=inv.taxIssue===false;
     var rowBg = inv.preIssued ? 'background:rgba(79,142,247,.05);' : '';
@@ -3894,7 +4012,17 @@ function renderPending(){
       ? '<button class="btn btn-primary btn-sm" data-action="open-detail" data-id="'+inv.id+'" style="background:var(--accent2)">💰 입금 매칭</button>'
        +(_isAdminPending ? '<button class="btn btn-sm" data-action="force-settle" data-id="'+inv.id+'" style="background:var(--green);color:#fff;font-size:11px" title="[어드민] 이체 매칭 없이 바로 정산완료 처리">✓ 정산완료</button>' : '')
       : '<button class="btn btn-primary btn-sm" data-action="open-detail" data-id="'+inv.id+'">입금 확인</button>';
-    return '<tr class="clickable-row" data-action="open-detail" data-id="'+inv.id+'" style="cursor:pointer;'+rowBg+'">'
+    // 선발행 건에만 다중선택 체크박스 제공
+    var isChecked = _pendingMultiSelected.has(inv.id);
+    var chkCell = inv.preIssued
+      ? '<td style="text-align:center;padding:10px 6px" onclick="event.stopPropagation();togglePendingMultiSelect(\''+inv.id+'\')" title="합산 매칭용 선택">'
+        +'<div style="width:18px;height:18px;border-radius:4px;border:2px solid '+(isChecked?'var(--accent)':'var(--border2)')+';background:'+(isChecked?'var(--accent)':'transparent')+';display:flex;align-items:center;justify-content:center;cursor:pointer;transition:.15s">'
+        +(isChecked?'<svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4l3 3 5-6" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>':'')
+        +'</div></td>'
+      : '<td></td>';
+    var rowHighlight = isChecked ? 'background:var(--accent-dim);outline:1px solid var(--accent-glow);' : rowBg;
+    return '<tr class="clickable-row" data-action="open-detail" data-id="'+inv.id+'" style="cursor:pointer;'+rowHighlight+'">'
+      +chkCell
       +'<td style="text-align:center">'+taxIssueBadge+'</td>'
       +'<td><strong>'+inv.client.org+'</strong><br><span style="font-size:12px;color:var(--text3)">'+inv.client.bizno+'</span></td>'
       +'<td>'+managerChip(inv.managerName||'')+'</td>'
@@ -3913,7 +4041,7 @@ function renderPending(){
       +'</div></td>'
       +'</tr>';
   }).join('')
-  :'<tr><td colspan="12" style="text-align:center;color:var(--text3);padding:30px">대기 중인 건이 없습니다</td></tr>';
+  :'<tr><td colspan="13" style="text-align:center;color:var(--text3);padding:30px">대기 중인 건이 없습니다</td></tr>';
 }
 
 
@@ -3969,7 +4097,11 @@ function renderHistory(){
   }
   if(search) all=all.filter(function(i){return i.client.org.toLowerCase().includes(search);});
   if(mgr)    all=all.filter(function(i){return i.managerId===mgr;});
-  all=[...all].reverse();
+  // 정렬 (처리일 기준: issuedAt > paymentConfirmedAt > createdAt)
+  all.sort(function(a,b){
+    var ta=new Date(getRefDate(a)||0).getTime(), tb=new Date(getRefDate(b)||0).getTime();
+    return _sortOrder['history']==='asc' ? ta-tb : tb-ta;
+  });
 
   // 탭별 분류
   // settle1: 비세발 정산완료 (taxIssue=false + status=issued)
@@ -4729,10 +4861,37 @@ function renderClients(){
 function populateClientSelect(){
   const sel=$('clientSelect'); if(!sel)return;
   const cur=sel.value;
-  sel.innerHTML='<option value="">직접 입력</option>'+state.clients.map(c=>`<option value="${c.id}">${c.org} (${c.bizno})</option>`).join('');
+  const q = ($('clientSearchInp') ? $('clientSearchInp').value.trim().toLowerCase() : '');
+  const filtered = q
+    ? state.clients.filter(c=>(c.org||'').toLowerCase().includes(q)||(c.bizno||'').includes(q))
+    : state.clients;
+  sel.innerHTML='<option value="">직접 입력</option>'+filtered.map(c=>`<option value="${c.id}">${c.org} (${c.bizno})</option>`).join('');
   sel.value=cur;
   const rv=$('rv-client'); if(!rv)return;
   rv.innerHTML='<option value="">선택 또는 직접 입력</option>'+state.clients.map(c=>`<option value="${c.id}">${c.org}</option>`).join('');
+}
+
+// 청구 등록 폼 — 거래처 검색 인풋 핸들러
+function filterClientSelect(q){
+  const sel=$('clientSelect'); if(!sel)return;
+  const kw=(q||'').trim().toLowerCase();
+  const filtered=kw
+    ? state.clients.filter(c=>(c.org||'').toLowerCase().includes(kw)||(c.bizno||'').includes(kw))
+    : state.clients;
+  const prev=sel.value;
+  sel.innerHTML='<option value="">직접 입력</option>'+filtered.map(c=>`<option value="${c.id}">${c.org} (${c.bizno})</option>`).join('');
+  sel.value=prev;
+}
+
+// 거래처 관리 탭 — 테이블 행 필터링
+function filterClientsTable(q){
+  const kw=(q||'').trim().toLowerCase();
+  const rows=$('clientsTbody').querySelectorAll('tr');
+  rows.forEach(function(tr){
+    if(!kw){ tr.style.display=''; return; }
+    const txt=tr.textContent.toLowerCase();
+    tr.style.display=txt.includes(kw)?'':'none';
+  });
 }
 function openClientPanel(id){
   var fields=['cp-org','cp-bizno','cp-rep','cp-email','cp-tax-email','cp-address','cp-biztype','cp-bizitem','cp-contact-name','cp-contact-title','cp-contact-tel','cp-memo','cp-editId'];
@@ -5022,6 +5181,12 @@ function saveEditInvoice(){
   });
   if(!items.length){ toast('품목을 최소 1개 입력해주세요','error'); return; }
 
+  // 계산서 발행 전 수정 → 기존 이체 매칭 전부 해제 (재검수 목적)
+  var unlinkedTransfers = state.transfers.filter(function(t){ return t.invoiceId === inv.id; });
+  if(unlinkedTransfers.length){
+    unlinkedTransfers.forEach(function(t){ t.invoiceId = null; dbSaveTransfer(t); });
+  }
+
   // 저장
   inv.client = {bizno:bizno,org:org,rep:rep,email:email};
   inv.date   = date;
@@ -5031,7 +5196,11 @@ function saveEditInvoice(){
 
   saveState(); dbSaveInvoice(inv); renderAll();
   closeModal('editInvoiceModal');
-  toast('수정이 저장되었습니다','success');
+  if(unlinkedTransfers.length){
+    toast('수정 저장 완료 — 기존 매칭 '+unlinkedTransfers.length+'건이 자동 해제되었습니다','warning');
+  } else {
+    toast('수정이 저장되었습니다','success');
+  }
 }
 
 function saveInvoice(){
@@ -5581,6 +5750,141 @@ function forceSettle(id){
   showPage('history'); setHistTab('invoice');
 }
 
+
+// ══════════════════════════════════════════════════════════
+// 합산 입금 매칭 (이체확인대기 다중청구건 → 하나의 입금건)
+// ══════════════════════════════════════════════════════════
+var _mmSelectedTransferIds = new Set(); // 모달 내 선택된 이체 id
+
+function openMultiMatchModal(){
+  var ids = Array.from(_pendingMultiSelected);
+  if(ids.length < 2){ toast('합산 매칭은 선발행 청구건을 2건 이상 선택해야 합니다','error'); return; }
+  // 선발행 건만 허용
+  var invs = ids.map(function(id){ return state.invoices.find(function(i){return i.id===id;}); }).filter(Boolean);
+  var nonPre = invs.filter(function(i){ return !i.preIssued; });
+  if(nonPre.length){ toast('합산 매칭은 선발행 완료 건만 선택 가능합니다','error'); return; }
+
+  _mmSelectedTransferIds.clear();
+  var totalAmt = invs.reduce(function(s,i){ return s+getTotal(i); }, 0);
+
+  // 청구건 요약 렌더
+  if($('mmInvoiceSummary')){
+    $('mmInvoiceSummary').innerHTML = invs.map(function(inv){
+      return '<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border)">'
+        +'<span style="font-size:13px;color:var(--text)"><strong>'+inv.client.org+'</strong> <span style="font-size:11px;color:var(--text3)">'+inv.date+'</span></span>'
+        +'<span style="font-size:13px;font-weight:700;font-family:monospace;color:var(--accent)">'+fmt(getTotal(inv))+'원</span>'
+      +'</div>';
+    }).join('');
+  }
+  if($('mmTotalAmt')) $('mmTotalAmt').textContent = fmt(totalAmt)+'원';
+  if($('mmReqAmt'))   $('mmReqAmt').textContent   = fmt(totalAmt)+'원';
+
+  // 미매칭 + 금액 합산 가능한 입금 내역 렌더
+  var transfers = state.transfers.filter(function(t){ return (t.amount||0) > 0; })
+    .sort(function(a,b){ return (b.date||'').localeCompare(a.date||''); });
+  if($('mmTransferList')){
+    if(!transfers.length){
+      $('mmTransferList').innerHTML = '<div style="text-align:center;color:var(--text3);padding:20px;font-size:13px">등록된 입금 내역이 없습니다</div>';
+    } else {
+      $('mmTransferList').innerHTML = transfers.map(function(t){
+        var alreadyLinked = t.invoiceId && !ids.includes(t.invoiceId); // 다른 청구에 매칭된 건
+        var isAmtMatch = t.amount === totalAmt;
+        return '<div class="mm-transfer-card" data-tid="'+t.id+'" style="'+(alreadyLinked?'opacity:.4;pointer-events:none;':'')+'padding:10px 12px;border:1px solid var(--border);border-radius:8px;cursor:pointer;background:var(--surface);transition:.15s'+(isAmtMatch?';border-color:var(--yellow)':'')+'">'
+          +'<div style="display:flex;justify-content:space-between;align-items:center">'
+            +'<div>'
+              +'<span style="font-weight:600;font-size:14px;font-family:monospace">'+fmt(t.amount)+'원</span>'
+              +(isAmtMatch?'<span style="font-size:10px;color:var(--yellow);font-weight:700;margin-left:6px">💛 금액 일치</span>':'')
+              +(alreadyLinked?'<span style="font-size:10px;color:var(--text3);margin-left:6px">🔒 다른 건 매칭됨</span>':'')
+            +'</div>'
+            +'<span style="font-size:11px;color:var(--text3)">'+t.date+'</span>'
+          +'</div>'
+          +'<div style="font-size:12px;color:var(--text2);margin-top:3px">'+t.sender+(t.bank?' · '+t.bank:'')+'</div>'
+          +(t.memo?'<div style="font-size:11px;color:var(--text3);margin-top:2px">'+t.memo+'</div>':'')
+        +'</div>';
+      }).join('');
+      // 클릭 이벤트
+      $('mmTransferList').querySelectorAll('.mm-transfer-card').forEach(function(el){
+        el.addEventListener('click', function(){
+          var tid = el.dataset.tid;
+          if(_mmSelectedTransferIds.has(tid)){
+            _mmSelectedTransferIds.delete(tid);
+            el.style.background='var(--surface)';
+            el.style.borderColor=el.dataset.match?'var(--yellow)':'var(--border)';
+          } else {
+            _mmSelectedTransferIds.add(tid);
+            el.style.background='var(--accent-dim)';
+            el.style.borderColor='var(--accent)';
+            el.style.outline='2px solid var(--accent-glow)';
+          }
+          _updateMmAmtBox(totalAmt);
+        });
+      });
+    }
+  }
+  _updateMmAmtBox(totalAmt);
+  openModal('multiMatchModal');
+}
+
+function _updateMmAmtBox(totalAmt){
+  var selIds = Array.from(_mmSelectedTransferIds);
+  var selAmt = selIds.reduce(function(s,tid){
+    var t = state.transfers.find(function(x){return x.id===tid;}); return s+(t?t.amount:0);
+  }, 0);
+  var diff = selAmt - totalAmt;
+  var matched = diff === 0 && selIds.length > 0;
+  if($('mmSelAmt'))  $('mmSelAmt').textContent  = fmt(selAmt)+'원';
+  if($('mmDiffAmt')){
+    $('mmDiffAmt').textContent = (diff>0?'+':'')+fmt(diff)+'원';
+    $('mmDiffAmt').style.color = matched?'var(--green)':diff!==0?'var(--red)':'var(--text3)';
+  }
+  if($('mmStatusMsg')){
+    $('mmStatusMsg').textContent = selIds.length===0 ? '입금 내역을 선택하세요'
+      : matched ? '✅ 금액 일치 — 합산 매칭 처리 가능합니다'
+      : '❌ 차액 '+fmt(Math.abs(diff))+'원 '+(diff>0?'초과':'부족');
+    $('mmStatusMsg').style.color = matched ? 'var(--green)' : 'var(--red)';
+  }
+  if($('mmConfirmBtn')) $('mmConfirmBtn').disabled = !matched;
+}
+
+function confirmMultiMatch(){
+  var invIds = Array.from(_pendingMultiSelected);
+  var tIds   = Array.from(_mmSelectedTransferIds);
+  if(!invIds.length || !tIds.length) return;
+
+  var now = new Date().toISOString().replace('T',' ').substring(0,16);
+
+  // 선택된 각 이체건 → 첫 번째 invoice에 연결 (DB 저장용)
+  // 입금 1건을 여러 청구에 분할 매칭: transfer.invoiceId 는 invIds[0] 기준 (내부 참조)
+  // 각 invoice에 paymentConfirmedAt 기록 → 처리이력 이동
+  tIds.forEach(function(tid){
+    var t = state.transfers.find(function(x){return x.id===tid;});
+    if(t) t.invoiceId = invIds[0]; // 대표 invoice에 연결
+  });
+
+  invIds.forEach(function(invId){
+    var inv = state.invoices.find(function(i){return i.id===invId;});
+    if(!inv) return;
+    inv.paymentConfirmedAt = now;
+    inv.issuedAt = inv.issuedAt || now;
+    // 미수금 정산
+    var _r = state.receivables.find(function(r){return r.invoiceId===invId;});
+    if(_r){ _r.paid = _r.amount || getTotal(inv); _r.status='paid'; dbSaveReceivable(_r); }
+    dbSaveInvoice(inv);
+  });
+
+  tIds.forEach(function(tid){
+    var t = state.transfers.find(function(x){return x.id===tid;});
+    if(t) dbSaveTransfer(t);
+  });
+
+  saveState();
+  _pendingMultiSelected.clear();
+  _mmSelectedTransferIds.clear();
+  closeModal('multiMatchModal');
+  renderAll();
+  toast('✅ 합산 매칭 완료 (청구 '+invIds.length+'건 · 입금 '+tIds.length+'건) — 처리이력으로 이동되었습니다', 'success');
+  setTimeout(function(){ showPage('history'); setHistTab('invoice'); }, 300);
+}
 
 var _anCharts = {}; // Chart.js 인스턴스 보관 (destroy 용)
 
@@ -7225,8 +7529,11 @@ function renderTransfers(){
   var sf = ($('tr-filter-search') ? $('tr-filter-search').value||'' : '').toLowerCase();
   var matched = $('tr-filter-matched') ? $('tr-filter-matched').value||'' : '';
 
-  // 탭에 따라 입금/출금 분리
-  var list = [...state.transfers].reverse();
+  // 탭에 따라 입금/출금 분리 (정렬 상태 적용)
+  var list = [...state.transfers].sort(function(a,b){
+    var ta=new Date(a.date||a.createdAt||0).getTime(), tb=new Date(b.date||b.createdAt||0).getTime();
+    return _sortOrder['transfers']==='asc' ? ta-tb : tb-ta;
+  });
   if(tab === 'in'){
     list = list.filter(function(t){ return (t.amount||0) >= 0; });
   } else {
@@ -7280,10 +7587,15 @@ function renderTransfers(){
       var mgrLabel = (!isMyInv && !isAdmin && inv.managerName)
         ? '<br><span style="font-size:10px;color:rgba(255,255,255,0.75)">담당: '+inv.managerName+'</span>'
         : '';
-      matchCell = '<span class="badge badge-green">'+inv.client.org+'<br><span style="font-size:10px;font-weight:400">'+matchAmt+'원</span>'+mgrLabel+'</span>';
+      // 매칭 취소 버튼: 청구건이 아직 issued(계산서발행완료) 아닌 경우만 표시
+      var canUnmatch = inv.status !== 'issued' || (inv.preIssued && !inv.paymentConfirmedAt);
+      var unmatchBtn = canUnmatch
+        ? '<button class="btn btn-sm" data-action="unmatch-transfer" data-id="'+t.id+'" style="margin-top:4px;font-size:10px;padding:2px 7px;background:rgba(240,68,82,.1);color:var(--red);border:1px solid rgba(240,68,82,.2);border-radius:4px;display:block">✕ 매칭취소</button>'
+        : '';
+      matchCell = '<div><span class="badge badge-green">'+inv.client.org+'<br><span style="font-size:10px;font-weight:400">'+matchAmt+'원</span>'+mgrLabel+'</span>'+unmatchBtn+'</div>';
     } else if(t.invoiceId) {
-      // invoiceId는 있으나 캐시에서도 못 찾은 경우 (데이터 동기화 지연) → 아이디 표시
-      matchCell = '<span style="color:var(--yellow);font-size:12px"> 매칭됨</span>';
+      matchCell = '<span style="color:var(--yellow);font-size:12px"> 매칭됨</span>'
+        +'<button class="btn btn-sm" data-action="unmatch-transfer" data-id="'+t.id+'" style="margin-top:4px;font-size:10px;padding:2px 7px;background:rgba(240,68,82,.1);color:var(--red);border:1px solid rgba(240,68,82,.2);border-radius:4px;display:block">✕ 매칭취소</button>';
     } else {
       matchCell = '<span style="color:var(--text3)">미매칭</span>';
     }
@@ -7302,6 +7614,21 @@ function renderTransfers(){
       +'</tr>';
   }).join('')
   : '<tr><td colspan="7" style="text-align:center;color:var(--text3);padding:30px">'+(df?df+' 날짜의 ':mf?mf+' 월의 ':'')+(tab==='in'?'입금':'출금')+' 내역이 없습니다</td></tr>';
+}
+
+// 이체 매칭 취소 (청구건 매칭만 해제, 청구건 자체는 유지)
+function unmatchTransfer(tid){
+  var t = state.transfers.find(function(x){return x.id===tid;});
+  if(!t || !t.invoiceId){ toast('매칭된 청구건이 없습니다','error'); return; }
+  var inv = _allInvoicesCache.find(function(i){return i.id===t.invoiceId;})
+         || state.invoices.find(function(i){return i.id===t.invoiceId;});
+  var label = inv ? '['+inv.client.org+'] '+fmt(inv.taxIssue===false?getSupply(inv):getTotal(inv))+'원' : t.invoiceId;
+  if(!confirm('아래 청구건과의 매칭을 취소하시겠습니까?\n\n'+label+'\n\n청구건 자체는 삭제되지 않으며,\n이체확인대기 목록으로 돌아갑니다.')) return;
+  t.invoiceId = null;
+  saveState();
+  dbSaveTransfer(t);
+  renderAll();
+  toast('매칭이 취소되었습니다','info');
 }
 
 function openTransferModal(id){
@@ -7338,23 +7665,27 @@ function saveTransfer(){
   var sender = $('tm-sender').value.trim();
   if(!date||!amount||!sender){ toast('입금일, 금액, 입금자명은 필수입니다','error'); return; }
   var editId = $('tm-edit-id').value;
-  var obj = {
+  var patch = {
     date: date, amount: amount, sender: sender,
     bank: $('tm-bank').value, account: $('tm-account').value.trim(),
     memo: $('tm-memo').value.trim(), invoiceId: $('tm-invoice-match').value||null
   };
   if(editId){
-    Object.assign(state.transfers.find(function(x){return x.id===editId;}), obj);
-    obj.id = editId;
-    dbSaveTransfer(obj);
+    // ✅ 버그수정: 원본 객체에 patch 머지 후 전체 객체를 DB에 저장 (pbId, source 등 원본 필드 보존)
+    var existing = state.transfers.find(function(x){return x.id===editId;});
+    if(!existing){ toast('수정할 내역을 찾을 수 없습니다','error'); return; }
+    Object.assign(existing, patch);
+    saveState();
+    dbSaveTransfer(existing);  // ← 전체 객체 저장 (원본 필드 포함)
     toast('수정되었습니다','success');
   } else {
-    obj.id = uid(); obj.createdAt = today();
-    state.transfers.push(obj);
-    dbSaveTransfer(obj);
+    var newT = Object.assign({id: uid(), createdAt: today()}, patch);
+    state.transfers.push(newT);
+    saveState();
+    dbSaveTransfer(newT);
     toast('이체 내역이 등록되었습니다','success');
   }
-  saveState(); renderAll(); closeModal('transferModal');
+  renderAll(); closeModal('transferModal');
 }
 
 async function deleteTransfer(id){
@@ -8826,8 +9157,9 @@ document.addEventListener('DOMContentLoaded', function() {
       if(act==='remove-item') removeItem(id);
       if(act==='open-detail')   openDetailPanel(id);
       if(act==='done-no-tax')   doneNoTax(id);
-      if(act==='edit-transfer') openTransferModal(id);
-      if(act==='del-transfer')  deleteTransfer(id);
+      if(act==='edit-transfer')    openTransferModal(id);
+      if(act==='del-transfer')     deleteTransfer(id);
+      if(act==='unmatch-transfer') unmatchTransfer(id);
       if(act==='go-transfers')  { closeDetailPanel(); showPage('transfers'); }
     }
 
