@@ -1451,11 +1451,20 @@
             <div class="section-title">거래처 정보 (공급받는자)</div>
             <div class="form-grid">
               <div class="form-group" style="grid-column:1/-1">
-                <label>거래처 선택</label>
-                <div style="display:flex;gap:6px;align-items:center">
-                  <input type="text" id="clientSearchInp" placeholder="🔍 거래처명 또는 사업자번호 검색..." style="flex:1;padding:7px 10px;border:1px solid var(--border);border-radius:6px;background:var(--surface2);color:var(--text1);font-size:13px" oninput="filterClientSelect(this.value)">
-                  <select id="clientSelect" style="flex:1.2"><option value="">직접 입력</option></select>
+                <label>거래처 선택 <span style="font-size:11px;color:var(--text3);font-weight:400">이름 또는 사업자번호 입력 후 목록에서 선택</span></label>
+                <div style="position:relative">
+                  <input type="text" id="clientSearchInp" autocomplete="off" placeholder="🔍 거래처명 또는 사업자번호 입력..." style="width:100%;padding:9px 36px 9px 12px;border:1px solid var(--border);border-radius:8px;background:var(--surface2);color:var(--text1);font-size:14px;box-sizing:border-box" oninput="_clientAcInput(this.value)" onkeydown="_clientAcKey(event)" onfocus="_clientAcInput(this.value)">
+                  <span id="clientSearchClear" onclick="_clientAcClear()" style="display:none;position:absolute;right:10px;top:50%;transform:translateY(-50%);cursor:pointer;color:var(--text3);font-size:16px;line-height:1">&#x2715;</span>
+                  <div id="clientAcDrop" style="display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;background:var(--surface);border:1px solid var(--border2);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.18);z-index:300;max-height:240px;overflow-y:auto"></div>
                 </div>
+                <!-- 선택된 거래처 뱃지 -->
+                <div id="clientSelectedBadge" style="display:none;margin-top:8px;display:none;align-items:center;gap:8px;background:var(--accent-dim);border:1px solid var(--accent-glow);border-radius:8px;padding:8px 12px">
+                  <span style="font-size:13px;color:var(--accent);font-weight:600" id="clientSelectedName"></span>
+                  <span style="font-size:11px;color:var(--text3)" id="clientSelectedBizno"></span>
+                  <button type="button" onclick="_clientAcClear()" style="margin-left:auto;background:none;border:none;cursor:pointer;color:var(--text3);font-size:13px;padding:0">✕ 선택 해제</button>
+                </div>
+                <!-- hidden select for compatibility -->
+                <select id="clientSelect" style="display:none"><option value="">직접 입력</option></select>
               </div>
               <div class="form-group"><label>사업자번호 *</label><input type="text" id="inp-bizno" placeholder="000-00-00000"></div>
               <div class="form-group"><label>상호 *</label><input type="text" id="inp-orgname" placeholder="(주)거래처"></div>
@@ -4918,17 +4927,99 @@ function populateClientSelect(){
   rv.innerHTML='<option value="">선택 또는 직접 입력</option>'+state.clients.map(c=>`<option value="${c.id}">${c.org}</option>`).join('');
 }
 
-// 청구 등록 폼 — 거래처 검색 인풋 핸들러
-function filterClientSelect(q){
-  const sel=$('clientSelect'); if(!sel)return;
-  const kw=(q||'').trim().toLowerCase();
-  const filtered=kw
-    ? state.clients.filter(c=>(c.org||'').toLowerCase().includes(kw)||(c.bizno||'').includes(kw))
-    : state.clients;
-  const prev=sel.value;
-  sel.innerHTML='<option value="">직접 입력</option>'+filtered.map(c=>`<option value="${c.id}">${c.org} (${c.bizno})</option>`).join('');
-  sel.value=prev;
+// ── 거래처 autocomplete (청구 등록 폼)
+var _clientAcIdx = -1; // 키보드 커서
+
+function _clientAcInput(q){
+  var kw = (q||'').trim().toLowerCase();
+  var clear = $('clientSearchClear');
+  if(clear) clear.style.display = q ? 'block' : 'none';
+  var drop = $('clientAcDrop'); if(!drop) return;
+  if(!kw){ drop.style.display='none'; _clientAcIdx=-1; return; }
+  var filtered = state.clients.filter(function(c){
+    return (c.org||'').toLowerCase().includes(kw) || (c.bizno||'').replace(/-/g,'').includes(kw.replace(/-/g,''));
+  });
+  if(!filtered.length){
+    drop.innerHTML = '<div style="padding:14px 16px;font-size:13px;color:var(--text3)">검색 결과 없음 — 아래에 직접 입력하세요</div>';
+    drop.style.display='block'; _clientAcIdx=-1; return;
+  }
+  _clientAcIdx = -1;
+  drop.innerHTML = filtered.map(function(c,i){
+    var orgHl  = (c.org||'').replace(new RegExp('('+kw.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+')','gi'),'<mark style="background:var(--accent-dim);color:var(--accent);border-radius:2px;padding:0 1px">$1</mark>');
+    return '<div class="cl-ac-item" data-cid="'+c.id+'" data-idx="'+i+'" style="padding:10px 14px;cursor:pointer;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">'
+      +'<div><div style="font-size:14px;font-weight:600">'+orgHl+'</div>'
+      +'<div style="font-size:11px;color:var(--text3);margin-top:2px">'+c.bizno+(c.rep?' · 대표 '+c.rep:'')+'</div></div>'
+      +'<span style="font-size:11px;color:var(--accent);white-space:nowrap;margin-left:12px">선택 →</span>'
+    +'</div>';
+  }).join('');
+  drop.style.display = 'block';
+  // 호버 스타일
+  drop.querySelectorAll('.cl-ac-item').forEach(function(el){
+    el.addEventListener('mouseenter', function(){ el.style.background='var(--accent-dim)'; });
+    el.addEventListener('mouseleave', function(){ el.style.background=''; });
+    el.addEventListener('mousedown', function(e){ e.preventDefault(); _clientAcSelect(el.dataset.cid); });
+  });
 }
+
+function _clientAcKey(e){
+  var drop = $('clientAcDrop'); if(!drop||drop.style.display==='none') return;
+  var items = drop.querySelectorAll('.cl-ac-item');
+  if(!items.length) return;
+  if(e.key==='ArrowDown'){ e.preventDefault(); _clientAcIdx=Math.min(_clientAcIdx+1,items.length-1); _clientAcHighlight(items); }
+  else if(e.key==='ArrowUp'){ e.preventDefault(); _clientAcIdx=Math.max(_clientAcIdx-1,0); _clientAcHighlight(items); }
+  else if(e.key==='Enter'){ e.preventDefault();
+    if(_clientAcIdx>=0 && items[_clientAcIdx]) _clientAcSelect(items[_clientAcIdx].dataset.cid);
+    else if(items.length===1) _clientAcSelect(items[0].dataset.cid);
+  }
+  else if(e.key==='Escape'){ $('clientAcDrop').style.display='none'; _clientAcIdx=-1; }
+}
+
+function _clientAcHighlight(items){
+  items.forEach(function(el,i){ el.style.background = i===_clientAcIdx ? 'var(--accent-dim)' : ''; });
+  if(_clientAcIdx>=0) items[_clientAcIdx].scrollIntoView({block:'nearest'});
+}
+
+function _clientAcSelect(cid){
+  var c = state.clients.find(function(x){return x.id===cid;});
+  if(!c) return;
+  // 폼 자동 채우기
+  if($('inp-bizno'))   $('inp-bizno').value   = c.bizno||'';
+  if($('inp-orgname')) $('inp-orgname').value  = c.org||'';
+  if($('inp-repname')) $('inp-repname').value  = c.rep||'';
+  if($('inp-email'))   $('inp-email').value    = c.taxEmail||c.email||'';
+  if($('inp-address')) $('inp-address').value  = c.address||'';
+  if($('inp-biztype')) $('inp-biztype').value  = c.bizType||'';
+  if($('inp-bizitem')) $('inp-bizitem').value  = c.bizItem||'';
+  // hidden select 동기화 (기존 코드 호환)
+  var sel = $('clientSelect');
+  if(sel){ sel.innerHTML='<option value="'+c.id+'">'+c.org+'</option>'; sel.value=c.id; }
+  // 검색창 → 선택된 거래처명 표시
+  if($('clientSearchInp')) $('clientSearchInp').value = c.org + (c.bizno?' ('+c.bizno+')':'');
+  if($('clientSearchClear')) $('clientSearchClear').style.display='block';
+  // 선택 뱃지 표시
+  var badge = $('clientSelectedBadge');
+  if(badge){ badge.style.display='flex'; }
+  if($('clientSelectedName'))  $('clientSelectedName').textContent  = c.org;
+  if($('clientSelectedBizno')) $('clientSelectedBizno').textContent = c.bizno||'';
+  // 드롭다운 닫기
+  if($('clientAcDrop')) $('clientAcDrop').style.display='none';
+  _clientAcIdx=-1;
+  toast(c.org+' 선택됨','success');
+}
+
+function _clientAcClear(){
+  if($('clientSearchInp'))   $('clientSearchInp').value='';
+  if($('clientSearchClear')) $('clientSearchClear').style.display='none';
+  if($('clientAcDrop'))      $('clientAcDrop').style.display='none';
+  if($('clientSelectedBadge')) $('clientSelectedBadge').style.display='none';
+  var sel=$('clientSelect'); if(sel){ sel.innerHTML='<option value="">직접 입력</option>'; sel.value=''; }
+  // 폼 초기화
+  ['inp-bizno','inp-orgname','inp-repname','inp-email','inp-address','inp-biztype','inp-bizitem'].forEach(function(id){ if($(id)) $(id).value=''; });
+  _clientAcIdx=-1;
+}
+
+// 기존 filterClientSelect는 호환성 유지 (populateClientSelect에서 사용)
+function filterClientSelect(q){ _clientAcInput(q); }
 
 // 거래처 관리 탭 — 테이블 행 필터링
 function filterClientsTable(q){
@@ -5270,6 +5361,11 @@ function saveInvoice(){
 function resetForm(){
   ['inp-bizno','inp-orgname','inp-repname','inp-email','inp-address','inp-biztype','inp-bizitem','inp-due','inp-memo'].forEach(i=>$(i).value='');
   $('clientSelect').value=''; $('inp-due-type').value=''; $('saveClient').checked=false;
+  // autocomplete 초기화
+  if($('clientSearchInp'))     $('clientSearchInp').value='';
+  if($('clientSearchClear'))   $('clientSearchClear').style.display='none';
+  if($('clientAcDrop'))        $('clientAcDrop').style.display='none';
+  if($('clientSelectedBadge')) $('clientSelectedBadge').style.display='none';
   populateClientSelect();   // 거래처 목록 항상 최신으로 유지
   populateManagerSelect();  // 담당자 목록 항상 최신으로 유지
   $('inp-manager').value=state.currentUser?.id||''; $('inp-date').value=today();
@@ -9301,6 +9397,14 @@ document.addEventListener('DOMContentLoaded', function() {
   $('testApiBtn').addEventListener('click', testApiConnection);
 
   // Form changes
+  // 거래처 autocomplete 외부 클릭 시 드롭다운 닫기
+  document.addEventListener('click', function(e){
+    var inp = $('clientSearchInp'), drop = $('clientAcDrop');
+    if(drop && inp && !inp.contains(e.target) && !drop.contains(e.target)){
+      drop.style.display='none'; _clientAcIdx=-1;
+    }
+  });
+  // hidden select change (호환성 유지 — autocomplete가 직접 처리하므로 no-op)
   $('clientSelect').addEventListener('change', ()=>{ const c=state.clients.find(x=>x.id===$('clientSelect').value); if(c){$('inp-bizno').value=c.bizno;$('inp-orgname').value=c.org;$('inp-repname').value=c.rep;$('inp-email').value=c.email||'';$('inp-address').value=c.address||'';$('inp-biztype').value=c.bizType||'';$('inp-bizitem').value=c.bizItem||'';} });
   $('inp-due-type').addEventListener('change', applyDuePreset);
   $('taxToggleWrap').addEventListener('click', ()=>{ $('inp-tax-issue').checked=!$('inp-tax-issue').checked; updateTaxToggleUI(); });
