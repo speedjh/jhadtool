@@ -1452,10 +1452,12 @@
             <div class="form-grid">
               <div class="form-group" style="grid-column:1/-1">
                 <label>거래처 선택</label>
-                <div style="position:relative">
-                  <input type="text" id="clientSearchInp" autocomplete="off" placeholder="거래처명 검색 (예: 고무통신, 이움...)" style="width:100%;box-sizing:border-box;padding:8px 12px;border:1px solid var(--border);border-radius:8px;background:var(--surface2);color:var(--text1);font-size:13px" oninput="_clientAcInput(this.value)" onkeydown="_clientAcKey(event)">
-                  <ul id="clientAcDrop" style="display:none;position:absolute;top:100%;left:0;right:0;z-index:9999;margin:2px 0 0;padding:0;list-style:none;background:var(--surface2);border:1px solid var(--border);border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.18);max-height:240px;overflow-y:auto;"></ul>
-                  <select id="clientSelect" style="display:none"><option value="">직접 입력</option></select>
+                <div style="display:flex;gap:8px;align-items:flex-start">
+                  <div style="flex:1;position:relative">
+                    <input type="text" id="clientSearchInp" autocomplete="off" placeholder="거래처명 검색..." style="width:100%;box-sizing:border-box;padding:8px 12px;border:1px solid var(--border);border-radius:8px;background:var(--surface2);color:var(--text1);font-size:13px" oninput="_clientAcInput(this.value)" onkeydown="_clientAcKey(event)">
+                    <ul id="clientAcDrop" onclick="_clientAcDropClick(event)" style="display:none;position:absolute;top:100%;left:0;right:0;z-index:9999;margin:2px 0 0;padding:0;list-style:none;background:var(--surface2);border:1px solid var(--border);border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.18);max-height:240px;overflow-y:auto;"></ul>
+                  </div>
+                  <select id="clientSelect" style="flex:1.2;padding:8px 10px;border:1px solid var(--border);border-radius:8px;background:var(--surface2);color:var(--text1);font-size:13px"><option value="">직접 입력</option></select>
                 </div>
               </div>
               <div class="form-group"><label>사업자번호 *</label><input type="text" id="inp-bizno" placeholder="000-00-00000"></div>
@@ -4954,8 +4956,16 @@ function _clientAcInput(q){
     var bizno = c.bizno ? '<span style="color:var(--text3);font-size:12px">('+c.bizno+')</span>' : '';
     return '<li data-cid="'+c.id+'" style="padding:10px 14px;cursor:pointer;font-size:13px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;gap:8px" onmouseenter="this.style.background=\'var(--surface3)\'" onmouseleave="this.style.background=\'\'"><span>'+orgHL+'</span>'+bizno+'</li>';
   }).join('');
-  // 클릭 이벤트는 이벤트 위임으로 처리 (mousedown 타이밍 문제 방지)
   drop.style.display='block';
+}
+
+// ul onclick 핸들러 — li 클릭으로 거래처 선택 (stopPropagation으로 document 위임 충돌 방지)
+function _clientAcDropClick(e){
+  e.stopPropagation();
+  var li = e.target.closest('li[data-cid]');
+  if(!li) return;
+  _clientAcApply(li.dataset.cid);
+  _clientAcDropClose();
 }
 
 function _clientAcDropClose(){
@@ -9393,27 +9403,15 @@ document.addEventListener('DOMContentLoaded', function() {
   $('testApiBtn').addEventListener('click', testApiConnection);
 
   // Form changes
-  // 거래처 autocomplete: 아이템 선택 OR 외부 클릭 처리
-  document.addEventListener('mousedown', function(e){
+  // 거래처 autocomplete: 외부 클릭 시 드롭다운 닫기 (li 선택은 _clientAcDropClick이 처리)
+  document.addEventListener('click', function(e){
     var drop = $('clientAcDrop');
+    var inp  = $('clientSearchInp');
     if(!drop || drop.style.display==='none') return;
-
-    // 드롭다운 아이템 클릭 → 선택
-    var li = e.target.closest('li[data-cid]');
-    if(li && drop.contains(li)){
-      e.preventDefault(); // 인풋 blur 방지
-      _clientAcApply(li.dataset.cid);
-      _clientAcDropClose();
-      return;
-    }
-
-    // 인풋 외부 클릭 → 닫기
-    var inp = $('clientSearchInp');
-    if(inp && !inp.contains(e.target) && !drop.contains(e.target)){
-      _clientAcDropClose();
-    }
+    if(inp && inp.contains(e.target)) return;
+    if(drop && drop.contains(e.target)) return;
+    _clientAcDropClose();
   });
-  // blur는 제거 — mousedown 위임으로 외부 클릭 처리하므로 불필요
   // select 변경 시 폼 자동 채우기
   $('clientSelect').addEventListener('change', function(){
     var cid = $('clientSelect').value;
