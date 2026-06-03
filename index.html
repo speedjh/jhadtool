@@ -3158,7 +3158,22 @@ function showPage(name){
   if(pg) pg.classList.add('active');
   if(nv) nv.classList.add('active');
   // 페이지별 렌더 호출
-  if(name==='new-invoice') { populateClientSelect(); populateManagerSelect(); }
+  if(name==='new-invoice') {
+    // clients가 비어있으면 DB에서 즉시 로드 후 select 채우기
+    if(!state.clients || state.clients.length === 0){
+      sb.from('clients').select('*').order('org',{ascending:true}).then(function(res){
+        if(res.data && res.data.length){
+          state.clients = res.data.map(function(r){
+            return {id:r.id,org:r.org,bizno:r.bizno,rep:r.rep,email:r.email,taxEmail:r.tax_email,address:r.address,bizType:r.biz_type,bizItem:r.biz_item,contactName:r.contact_name,contactTitle:r.contact_title,contactTel:r.contact_tel,memo:r.memo,createdAt:r.created_at};
+          });
+        }
+        populateClientSelect();
+      });
+    } else {
+      populateClientSelect();
+    }
+    populateManagerSelect();
+  }
   if(name==='dashboard')   { renderDashboard(); }
   if(name==='pending')     { renderPending(); renderIssueReady(); }
   if(name==='issue-ready') { renderIssueReady(); }
@@ -4944,6 +4959,7 @@ function _clientAcInput(q){
   // 빈 입력이면 드롭다운 닫기
   if(!kw){ drop.style.display='none'; drop.innerHTML=''; return; }
 
+  console.log('[AC] kw='+kw+' clients='+state.clients.length);
   // state.clients가 비어있으면 DB에서 즉시 다시 로드 후 재시도
   if(!state.clients || state.clients.length === 0){
     drop.innerHTML = '<li style="padding:10px 14px;color:var(--text3);font-size:13px">거래처 로딩 중...</li>';
