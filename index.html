@@ -3230,17 +3230,23 @@ async function doLogin(){
   // 1) 로컬 state 먼저 로드 (기본 users 확보)
   try { loadState(); } catch(e) { console.warn('loadState 실패:', e.message); }
 
-  // 2) DB 로드 (실패해도 로컬 users로 계속, 최대 8초 타임아웃)
+  // 2) DB 로드 (실패해도 로컬 users로 계속, 최대 15초 타임아웃)
   try {
     await Promise.race([
       loadFromDB(),
-      new Promise((_,rej)=>setTimeout(()=>rej(new Error('DB 타임아웃')),8000))
+      new Promise((_,rej)=>setTimeout(()=>rej(new Error('DB 타임아웃')),15000))
     ]);
   } catch(e) {
     console.warn('DB 연결 실패 (오프라인 모드로 계속):', e.message);
-    $('loginAlert').innerHTML='<div class="alert alert-error" style="font-size:12px">⚠️ DB 연결 실패 — 로컬 데이터로 로그인합니다. Supabase 프로젝트가 일시정지 상태일 수 있습니다.</div>';
-    // 2초 후 알림 지우기
-    setTimeout(()=>{ if($('loginAlert')) $('loginAlert').innerHTML=''; }, 4000);
+    // clients만이라도 별도 로드 시도
+    try {
+      var cli = await sb.from('clients').select('*').order('org',{ascending:true});
+      if(cli.data && cli.data.length){
+        state.clients = cli.data.map(function(r){
+          return {id:r.id,org:r.org,bizno:r.bizno,rep:r.rep,email:r.email,taxEmail:r.tax_email,address:r.address,bizType:r.biz_type,bizItem:r.biz_item,contactName:r.contact_name,contactTitle:r.contact_title,contactTel:r.contact_tel,memo:r.memo,createdAt:r.created_at};
+        });
+      }
+    } catch(e2){}
   }
 
   // 3) users가 없으면 기본 계정 보장
@@ -4937,6 +4943,25 @@ function _clientAcInput(q){
 
   // 빈 입력이면 드롭다운 닫기
   if(!kw){ drop.style.display='none'; drop.innerHTML=''; return; }
+
+  // state.clients가 비어있으면 DB에서 즉시 다시 로드 후 재시도
+  if(!state.clients || state.clients.length === 0){
+    drop.innerHTML = '<li style="padding:10px 14px;color:var(--text3);font-size:13px">거래처 로딩 중...</li>';
+    drop.style.display = 'block';
+    var KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZranVqb2dkbHh6dHpzc2Nycnp1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE5NDQxMzEsImV4cCI6MjA4NzUyMDEzMX0.hkYH4lDQnbfRcuWoxdim3P1_LxmdcDhI_l1mnt3q4PA';
+    sb.from('clients').select('*').order('org',{ascending:true}).then(function(res){
+      if(res.data && res.data.length){
+        state.clients = res.data.map(function(r){
+          return {id:r.id,org:r.org,bizno:r.bizno,rep:r.rep,email:r.email,taxEmail:r.tax_email,address:r.address,bizType:r.biz_type,bizItem:r.biz_item,contactName:r.contact_name,contactTitle:r.contact_title,contactTel:r.contact_tel,memo:r.memo,createdAt:r.created_at};
+        });
+        populateClientSelect();
+        _clientAcInput(q); // 로드 후 재실행
+      } else {
+        drop.innerHTML = '<li style="padding:10px 14px;color:var(--text3);font-size:13px">거래처 로드 실패 — 새로고침 후 다시 시도해주세요</li>';
+      }
+    });
+    return;
+  }
 
   // 검색 필터링 (이름 or 사업자번호)
   var filtered = state.clients.filter(function(c){
