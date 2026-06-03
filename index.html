@@ -4959,7 +4959,6 @@ function _clientAcInput(q){
   // 빈 입력이면 드롭다운 닫기
   if(!kw){ drop.style.display='none'; drop.innerHTML=''; return; }
 
-  console.log('[AC] kw='+kw+' clients='+state.clients.length);
   // state.clients가 비어있으면 DB에서 즉시 다시 로드 후 재시도
   if(!state.clients || state.clients.length === 0){
     drop.innerHTML = '<li style="padding:10px 14px;color:var(--text3);font-size:13px">거래처 로딩 중...</li>';
@@ -9292,6 +9291,14 @@ document.addEventListener('DOMContentLoaded', function() {
   window.exportDailyMatrixCSV= exportDailyMatrixCSV;
   window.switchAnTab         = switchAnTab;
   window.exportAnalyticsCSV  = exportAnalyticsCSV;
+
+  // 거래처 자동완성 전역 노출 (IIFE 내부 함수 → 인라인 핸들러 접근용)
+  window._clientAcInput     = _clientAcInput;
+  window._clientAcKey       = _clientAcKey;
+  window._clientAcApply     = _clientAcApply;
+  window._clientAcDropClick = _clientAcDropClick;
+  window._clientAcDropClose = _clientAcDropClose;
+  window._clientAcClear     = _clientAcClear;
 
   // 지출결의 함수 전역 노출
   window.submitOutsource     = submitOutsource;
