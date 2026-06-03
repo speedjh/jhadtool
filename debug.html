@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"><title>Debug</title></head>
+<body>
+<h2>거래처 자동완성 디버그</h2>
+<div id="log" style="font-family:monospace;font-size:13px;background:#111;color:#0f0;padding:12px;height:300px;overflow-y:auto"></div>
+<hr>
+<input type="text" id="testInp" placeholder="고무 입력..." style="width:300px;padding:8px;font-size:14px">
+<ul id="testDrop" style="display:none;width:300px;border:1px solid #ccc;list-style:none;padding:0;margin:0;background:#fff"></ul>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const log = s => { 
+  document.getElementById('log').innerHTML += s + '<br>'; 
+  document.getElementById('log').scrollTop = 9999;
+};
+
+const SUPA_URL = 'https://vkjujogdlxztzsscrrzu.supabase.co';
+const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZranVqb2dkbHh6dHpzc2Nycnp1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE5NDQxMzEsImV4cCI6MjA4NzUyMDEzMX0.hkYH4lDQnbfRcuWoxdim3P1_LxmdcDhI_l1mnt3q4PA';
+const sb = supabase.createClient(SUPA_URL, SUPA_KEY);
+
+let clients = [];
+
+log('▶ Supabase 연결 시작...');
+sb.from('clients').select('id,org,bizno').order('org',{ascending:true}).then(function(res){
+  if(res.error){ log('❌ 에러: ' + res.error.message); return; }
+  clients = res.data;
+  log('✅ clients 로드 완료: ' + clients.length + '개');
+  log('샘플: ' + clients.slice(0,3).map(c=>c.org).join(', '));
+});
+
+document.getElementById('testInp').addEventListener('input', function(){
+  var kw = this.value.trim().toLowerCase();
+  var drop = document.getElementById('testDrop');
+  log('⌨️ 입력: "' + kw + '" / state.clients 수: ' + clients.length);
+  
+  if(!kw){ drop.style.display='none'; return; }
+  
+  var filtered = clients.filter(function(c){
+    return (c.org||'').toLowerCase().includes(kw) || (c.bizno||'').includes(kw);
+  });
+  log('🔍 필터결과: ' + filtered.length + '개 → ' + filtered.slice(0,3).map(c=>c.org).join(', '));
+  
+  if(!filtered.length){ drop.innerHTML='<li style="padding:8px">검색 결과 없음</li>'; drop.style.display='block'; return; }
+  
+  drop.innerHTML = filtered.slice(0,10).map(function(c){
+    return '<li data-id="'+c.id+'" style="padding:8px 12px;cursor:pointer;border-bottom:1px solid #eee" onmouseover="this.style.background=\'#f0f0f0\'" onmouseout="this.style.background=\'\'">'+c.org+' ('+c.bizno+')</li>';
+  }).join('');
+  drop.style.display='block';
+  
+  drop.querySelectorAll('li[data-id]').forEach(function(li){
+    li.addEventListener('click', function(){
+      document.getElementById('testInp').value = li.textContent.split('(')[0].trim();
+      drop.style.display='none';
+      log('✅ 선택됨: ' + li.textContent);
+    });
+  });
+});
+</script>
+</body>
+</html>
