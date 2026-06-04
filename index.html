@@ -7526,6 +7526,15 @@ function openDetailPanel(invId){
   // 패널 열기
   $('detailOverlay').classList.add('open');
   $('detailPanel').classList.add('open');
+
+  // 좌·우측 스크롤 모두 맨 위로 초기화 (이전 패널 스크롤 위치 잔류 방지)
+  var panelBody = $('detailPanel').querySelector('.detail-panel-body');
+  if(panelBody){
+    var left  = panelBody.querySelector('.detail-left');
+    var right = panelBody.querySelector('.detail-right');
+    if(left)  left.scrollTop  = 0;
+    if(right) right.scrollTop = 0;
+  }
 }
 
 function updateDpSummary(targetAmt){
