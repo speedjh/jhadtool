@@ -9304,6 +9304,20 @@ document.addEventListener('DOMContentLoaded', function() {
   window._clientAcDropClose = _clientAcDropClose;
   window._clientAcClear     = _clientAcClear;
 
+  // 이체확인대기 — 합산 매칭 / 정렬 / 다중선택 전역 노출
+  window.openMultiMatchModal   = openMultiMatchModal;
+  window.confirmMultiMatch     = confirmMultiMatch;
+  window.clearPendingMultiSelect = clearPendingMultiSelect;
+  window.toggleSort            = toggleSort;
+
+  // 거래처 관리 — 검색 필터 전역 노출
+  window.filterClientsTable    = filterClientsTable;
+
+  // 일일정산 보드 전역 노출
+  window.moveDailyDate         = moveDailyDate;
+  window.openDailyDrill        = openDailyDrill;
+  window.renderDailyBoard      = renderDailyBoard;
+
   // 지출결의 함수 전역 노출
   window.submitOutsource     = submitOutsource;
   window.switchOsTab         = switchOsTab;
