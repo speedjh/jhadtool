@@ -3007,7 +3007,18 @@ async function dbDeleteInvoice(id) {
 
 // 이체 저장
 async function dbSaveTransfer(t) {
-  await sb.from('transfers').upsert({id:t.id, data:t, updated_at:new Date().toISOString()});
+  var MAX_RETRY = 3;
+  for(var _i=0; _i<MAX_RETRY; _i++){
+    try {
+      var res = await sb.from('transfers').upsert({id:t.id, data:t, updated_at:new Date().toISOString()});
+      if(!res.error) return; // 성공
+      console.warn('[dbSaveTransfer] 재시도', _i+1, res.error.message);
+    } catch(e){
+      console.warn('[dbSaveTransfer] 재시도', _i+1, e.message);
+    }
+    await new Promise(function(r){ setTimeout(r, 800); }); // 800ms 후 재시도
+  }
+  console.error('[dbSaveTransfer] 최종 실패 — id:', t.id);
 }
 async function dbDeleteTransfer(id) {
   await sb.from('transfers').delete().eq('id',id);
@@ -3351,7 +3362,18 @@ async function loadFromDB_safe() {
     });
   }
   if(cli.data)  state.clients     = cli.data.map(r=>({id:r.id,org:r.org,bizno:r.bizno,rep:r.rep,email:r.email,taxEmail:r.tax_email,address:r.address,bizType:r.biz_type,bizItem:r.biz_item,contactName:r.contact_name,contactTitle:r.contact_title,contactTel:r.contact_tel,memo:r.memo,createdAt:r.created_at}));
-  if(trs.data)  state.transfers   = trs.data.map(r=>r.data);
+  if(trs.data) {
+    var dbTransfers = trs.data.map(function(r){ return r.data; });
+    // ── transfers 머지: DB 건 기준으로 갱신하되, 메모리에만 있는 건(DB 저장 대기 중)은 보존
+    var merged = dbTransfers.slice();
+    state.transfers.forEach(function(memT){
+      if(!merged.find(function(d){ return d.id === memT.id; })){
+        // DB에 없는 = 아직 저장 안 됐거나 방금 추가된 건 → 메모리 건 유지
+        merged.push(memT);
+      }
+    });
+    state.transfers = merged;
+  }
   if(rcv.data)  state.receivables = rcv.data.map(r=>r.data);
   if(usr.data && usr.data.length) state.users = usr.data.map(r=>({id:r.id,name:r.name,pw:r.pw,role:r.role,tel:r.tel||''}));
   if(out.data)  state.outsources  = out.data.map(r=>r.data);
@@ -8297,8 +8319,22 @@ async function loadPopbillTransfers(){
         matched: false
       };
       state.transfers.push(newT);
-      await dbSaveTransfer(newT);
       added++;
+    }
+
+    // ── 신규 건 배치 저장 (건별 await 대신 한 번에 upsert → 저장 누락 방지)
+    if(added > 0){
+      var newBatch = state.transfers.slice(-added); // 방금 추가된 건들
+      var batchRows = newBatch.map(function(t){ return {id:t.id, data:t, updated_at:new Date().toISOString()}; });
+      for(var _bi=0; _bi<3; _bi++){  // 최대 3회 재시도
+        try {
+          var bRes = await sb.from('transfers').upsert(batchRows);
+          if(!bRes.error){ console.log('[팝빌] DB 배치 저장 완료:', added+'건'); break; }
+          console.warn('[팝빌] DB 배치 저장 재시도', _bi+1, bRes.error.message);
+        } catch(be){ console.warn('[팝빌] DB 배치 저장 재시도', _bi+1, be.message); }
+        await new Promise(function(r){ setTimeout(r,800); });
+      }
+      saveState(); // localStorage도 즉시 동기화
     }
 
     // 팝빌 로드 후 최신순으로 리셋 → 방금 불러온 건이 맨 위에
