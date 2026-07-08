@@ -3275,12 +3275,20 @@ async function doLogin(){
     } catch(e2){}
   }
 
-  // 3) users가 없으면 기본 계정 보장
+  // 3) DB 로드 실패 시 fallback 계정 보장 (캐시 삭제 후에도 로그인 가능)
+  var _fallbackUsers = [
+    {id:'admin',  name:'관리자', pw:'1234',    role:'admin'},
+    {id:'989gts', name:'김민수', pw:'alstn12', role:'user'}
+  ];
   if(!state.users || !state.users.length){
-    state.users = [
-      {id:'admin', name:'관리자', pw:'1234', role:'admin'},
-      {id:'user',  name:'담당자', pw:'1234', role:'user'}
-    ];
+    state.users = _fallbackUsers.slice();
+  } else {
+    // DB에서 users를 불러왔더라도 fallback 계정이 없으면 보완
+    _fallbackUsers.forEach(function(fb){
+      if(!state.users.find(function(u){ return u.id===fb.id; })){
+        state.users.push(fb);
+      }
+    });
   }
 
   console.log('[Login] 보유 users:', state.users.map(u=>u.id));
