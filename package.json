@@ -2,7 +2,25 @@
   "name": "jhadtool",
   "version": "1.0.0",
   "private": true,
-  "engines": {
-    "node": "24.x"
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "wrangler pages dev dist --d1=jhadtool_production --local --ip 0.0.0.0 --port 3000",
+    "deploy": "npm run build && wrangler pages deploy dist --project-name jhadtool",
+    "db:migrate:local": "wrangler d1 migrations apply jhadtool-production --local",
+    "db:migrate:prod": "wrangler d1 migrations apply jhadtool-production",
+    "db:seed": "wrangler d1 execute jhadtool-production --local --file=./migration/seed.sql",
+    "db:seed:prod": "wrangler d1 execute jhadtool-production --file=./migration/seed.sql"
+  },
+  "dependencies": {
+    "hono": "^4.0.0"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20250705.0",
+    "@hono/vite-cloudflare-pages": "^0.4.2",
+    "typescript": "^5.0.0",
+    "vite": "^5.0.0",
+    "wrangler": "^3.78.0"
   }
 }
