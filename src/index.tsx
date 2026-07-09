@@ -414,6 +414,11 @@ app.post('/api/bolta-proxy', async (c) => {
 // Static + SPA fallback
 // ══════════════════════════════════════════
 app.use('/static/*', serveStatic({ root: './public' }))
-app.use('/*', serveStatic({ root: './public' }))
+
+// SPA fallback: index.html 직접 서빙
+import indexHtml from '../public/index.html?raw'
+app.get('*', (c) => {
+  return c.html(indexHtml)
+})
 
 export default app
