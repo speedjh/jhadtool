@@ -3277,8 +3277,11 @@ async function doLogin(){
 
   // 3) DB 로드 실패 시 fallback 계정 보장 (캐시 삭제 후에도 로그인 가능)
   var _fallbackUsers = [
-    {id:'admin',  name:'관리자', pw:'1234',    role:'admin'},
-    {id:'989gts', name:'김민수', pw:'alstn12', role:'user'}
+    {id:'admin',       name:'관리자', pw:'1234',           role:'admin'},
+    {id:'989gts',      name:'김민수', pw:'alstn12',        role:'user'},
+    {id:'dlrhkdxo307', name:'이광태', pw:'dpsxjqlwm1506!', role:'user'},
+    {id:'eth1020',     name:'엄태현', pw:'xogus1020',      role:'user'},
+    {id:'dalkomm',     name:'오정원', pw:'wjddnjs1004',    role:'user'}
   ];
   if(!state.users || !state.users.length){
     state.users = _fallbackUsers.slice();
@@ -3289,6 +3292,41 @@ async function doLogin(){
         state.users.push(fb);
       }
     });
+  }
+
+  // 4) DB 로드 실패 시 settings fallback 보장 (팝빌 설정 등)
+  var _fallbackSettings = {
+    env: 'test',
+    apiKey: 'live_MNXF95O91IU9S671XVNS6OIB3SXEK5BK01KKKASC1N7PA11HV1HTQGMJ6V',
+    customerKey: 'CustomerKey_4NR41N2FPUJAQEESMRNMMDPTW2VTETN601KKKASC22VSKX6N5983DBK3VH',
+    quoteAccount: '신한 110-555-662993  장재혁',
+    sup: {
+      org: '재흥광고기획', rep: '장재혁', bizno: '3730202934',
+      email: 'hywogur0327@naver.com',
+      address: '강원특별자치도 원주시 입춘로45, A동 1506, 1507호 (반곡동, 엔터비즈타워)',
+      bizItem: '광고대행업', bizType: '전문, 과학 및 기술서비스업'
+    },
+    popbill: {
+      env: 'live',
+      linkId: 'JAEHEUNG',
+      userId: 'hywogur0327',
+      corpNum: '3730202934',
+      secretKey: 'j+TD3vjiusbT5dwNMSwzxJ4h31KBVyfVDh8mKh3KpTY='
+    }
+  };
+  // settings가 없거나 popbill이 비어있으면 fallback 주입
+  if(!state.settings || !state.settings.popbill || !state.settings.popbill.linkId){
+    // 기존 settings의 다른 값은 보존하면서 빈 부분만 채움
+    state.settings = Object.assign({}, _fallbackSettings, state.settings||{});
+    // popbill은 별도로 처리 (중첩 객체)
+    if(!state.settings.popbill || !state.settings.popbill.linkId){
+      state.settings.popbill = _fallbackSettings.popbill;
+    }
+    // sup도 별도로 처리
+    if(!state.settings.sup || !state.settings.sup.bizno){
+      state.settings.sup = _fallbackSettings.sup;
+    }
+    console.log('[Login] settings fallback 적용됨');
   }
 
   console.log('[Login] 보유 users:', state.users.map(u=>u.id));
@@ -3386,7 +3424,10 @@ async function loadFromDB_safe() {
   if(usr.data && usr.data.length) state.users = usr.data.map(r=>({id:r.id,name:r.name,pw:r.pw,role:r.role,tel:r.tel||''}));
   if(out.data)  state.outsources  = out.data.map(r=>r.data);
   if(fil.data)  state.files       = fil.data.map(r=>r.data);
-  if(cfg.data)  state.settings    = cfg.data.value;
+  // settings: DB에서 오면 갱신, 안 오면 기존 메모리 값(fallback) 유지
+  if(cfg.data && cfg.data.value && cfg.data.value.popbill && cfg.data.value.popbill.linkId){
+    state.settings = cfg.data.value;
+  }
 }
 function doLogout(){
   stopSync();
