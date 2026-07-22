@@ -6154,9 +6154,22 @@ function confirmMultiMatch(){
     if(!inv) return;
     // state.invoices에도 반영
     var si = state.invoices.find(function(i){return i.id===invId;});
-    if(si){ si.paymentConfirmedAt = now; si.issuedAt = si.issuedAt || now; }
+    if(si){
+      si.paymentConfirmedAt = now;
+      si.issuedAt = si.issuedAt || now;
+      // pre-issue 건: 계산서 이미 발행됨 → 입금 매칭 완료 → issued로 전환
+      if(si.status === 'pre-issue'){
+        si.status   = 'issued';
+        si.preIssued = true;
+      }
+    }
     inv.paymentConfirmedAt = now;
     inv.issuedAt = inv.issuedAt || now;
+    // _allInvoicesCache 항목도 동일하게 갱신
+    if(inv.status === 'pre-issue'){
+      inv.status   = 'issued';
+      inv.preIssued = true;
+    }
     // 미수금 정산
     var _r = state.receivables.find(function(r){return r.invoiceId===invId;});
     if(_r){ _r.paid = _r.amount || getTotal(inv); _r.status='paid'; dbSaveReceivable(_r); }
