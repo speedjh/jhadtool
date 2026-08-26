@@ -3211,7 +3211,23 @@ function showPage(name){
   if(name==='dashboard')   { renderDashboard(); }
   if(name==='pending')     { renderPending(); renderIssueReady(); }
   if(name==='issue-ready') { renderIssueReady(); }
-  if(name==='clients')     { renderClients(); populateClientSelect(); if($('clientsSearchInp')) $('clientsSearchInp').value=''; }
+  if(name==='clients') {
+    if($('clientsSearchInp')) $('clientsSearchInp').value='';
+    if(!state.clients || state.clients.length === 0){
+      $('clientsTbody').innerHTML='<tr><td colspan="8" style="text-align:center;color:var(--text3);padding:30px">거래처 로딩 중...</td></tr>';
+      dbGet('clients').then(function(res){
+        if(res.data && res.data.length){
+          state.clients = res.data.map(function(r){
+            return {id:r.id,org:r.org,bizno:r.bizno,rep:r.rep,email:r.email,taxEmail:r.tax_email,address:r.address,bizType:r.biz_type,bizItem:r.biz_item,contactName:r.contact_name,contactTitle:r.contact_title,contactTel:r.contact_tel,memo:r.memo,createdAt:r.created_at};
+          });
+          saveState();
+        }
+        renderClients(); populateClientSelect();
+      });
+    } else {
+      renderClients(); populateClientSelect();
+    }
+  }
   if(name==='transfers')   { renderTransfers(); }
   if(name==='receivables') { renderReceivables(); }
   if(name==='outsource')   { renderOutsource(); }
@@ -3285,6 +3301,7 @@ async function doLogin(){
       loadFromDB(),
       new Promise((_,rej)=>setTimeout(()=>rej(new Error('DB 타임아웃')),15000))
     ]);
+    try { saveState(); } catch(e2){}
   } catch(e) {
     console.warn('DB 연결 실패 (오프라인 모드로 계속):', e.message);
     // clients만이라도 별도 로드 시도
@@ -5018,6 +5035,18 @@ async function deleteOutsource(id){
 }
 
 function renderClients(){
+  if(!state.clients || state.clients.length === 0){
+    dbGet('clients').then(function(res){
+      if(res.data && res.data.length){
+        state.clients = res.data.map(function(r){
+          return {id:r.id,org:r.org,bizno:r.bizno,rep:r.rep,email:r.email,taxEmail:r.tax_email,address:r.address,bizType:r.biz_type,bizItem:r.biz_item,contactName:r.contact_name,contactTitle:r.contact_title,contactTel:r.contact_tel,memo:r.memo,createdAt:r.created_at};
+        });
+        saveState();
+        renderClients();
+        populateClientSelect();
+      }
+    });
+  }
   $('clientsTbody').innerHTML=state.clients.length?state.clients.map(c=>`<tr>
     <td style="cursor:pointer" onclick="openClientSales('${c.id}')" title="매출 조회"><strong style="color:var(--accent)">${c.org}</strong>${c.address?`<br><span style="font-size:11px;color:var(--text3)">${c.address}</span>`:''}</td>
     <td class="mono" style="font-size:12px">${c.bizno}</td>
