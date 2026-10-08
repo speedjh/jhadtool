@@ -220,10 +220,47 @@ function hmacSha256Base64CF(secretKey: string, str: string): Promise<string> {
   ).then(sig => btoa(String.fromCharCode(...new Uint8Array(sig))))
 }
 
-function contentSha256(body: string): Promise<string> {
-  if (!body) return Promise.resolve('')
-  return crypto.subtle.digest('SHA-256', new TextEncoder().encode(body))
-    .then(buf => btoa(String.fromCharCode(...new Uint8Array(buf))))
+// 팝빌 링크허브 인증 서명: body를 MD5 해시 후 Base64 인코딩
+// (Cloudflare Workers에 crypto.subtle MD5 미지원 → 순수 JS 구현)
+function md5Base64(str: string): string {
+  const bytes = new TextEncoder().encode(str)
+  // MD5 순수 JS 구현
+  function md5(input: Uint8Array): Uint8Array {
+    const s=[7,12,17,22,7,12,17,22,7,12,17,22,7,12,17,22,5,9,14,20,5,9,14,20,5,9,14,20,5,9,14,20,4,11,16,23,4,11,16,23,4,11,16,23,4,11,16,23,6,10,15,21,6,10,15,21,6,10,15,21,6,10,15,21]
+    const K=new Uint32Array(64)
+    for(let i=0;i<64;i++) K[i]=Math.floor(Math.abs(Math.sin(i+1))*0x100000000)>>>0
+    const msgLen=input.length
+    const padLen=((msgLen%64)<56?56-(msgLen%64):120-(msgLen%64))
+    const padded=new Uint8Array(msgLen+padLen+8)
+    padded.set(input)
+    padded[msgLen]=0x80
+    const bits=BigInt(msgLen)*8n
+    for(let i=0;i<8;i++) padded[msgLen+padLen+i]=Number((bits>>(BigInt(i)*8n))&0xffn)
+    let a0=0x67452301,b0=0xefcdab89,c0=0x98badcfe,d0=0x10325476
+    const view=new DataView(padded.buffer)
+    for(let off=0;off<padded.length;off+=64){
+      const M=new Uint32Array(16)
+      for(let i=0;i<16;i++) M[i]=view.getUint32(off+i*4,true)
+      let A=a0,B=b0,C=c0,D=d0
+      for(let i=0;i<64;i++){
+        let F=0,g=0
+        if(i<16){F=(B&C)|(~B&D);g=i}
+        else if(i<32){F=(D&B)|(~D&C);g=(5*i+1)%16}
+        else if(i<48){F=B^C^D;g=(3*i+5)%16}
+        else{F=C^(B|(~D>>>0));g=(7*i)%16}
+        F=(F+A+K[i]+M[g])>>>0
+        A=D;D=C;C=B
+        const r=s[i];B=(B+((F<<r)|(F>>>(32-r))))>>>0
+      }
+      a0=(a0+A)>>>0;b0=(b0+B)>>>0;c0=(c0+C)>>>0;d0=(d0+D)>>>0
+    }
+    const out=new Uint8Array(16)
+    const ov=new DataView(out.buffer)
+    ov.setUint32(0,a0,true);ov.setUint32(4,b0,true);ov.setUint32(8,c0,true);ov.setUint32(12,d0,true)
+    return out
+  }
+  const hash = md5(bytes)
+  return btoa(String.fromCharCode(...hash))
 }
 
 // 토큰 캐시 (메모리, Worker 인스턴스 내)
@@ -237,7 +274,7 @@ async function getPopbillToken(linkId: string, secretKey: string, corpNum: strin
   const svcId = env === 'live' ? 'POPBILL' : 'POPBILL_TEST'
   const now   = new Date().toISOString().replace(/\.\d+Z$/, 'Z')
   const bodyStr = JSON.stringify({ access_id: corpNum, scope })
-  const md5val  = await contentSha256(bodyStr)
+  const md5val  = md5Base64(bodyStr)  // 팝빌 링크허브: body MD5 base64
   const resourceURI = `/${svcId}/Token`
   const sts = ['POST', md5val, now, '*', '2.0', resourceURI].join('\n')
   const sig = await hmacSha256Base64CF(secretKey, sts)
