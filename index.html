@@ -8346,28 +8346,30 @@ async function loadPopbillTransfers(){
     }
     toast('계좌 '+accounts.length+'개 확인. 거래내역 수집 중...','info');
 
-    // 날짜 범위: 날짜 피커 값(항상 오늘 또는 선택일) → 해당 날짜 하루만 수집
+    // 날짜 범위 결정:
+    // - 날짜 피커에 특정 날짜 선택 → 그 날 하루만
+    // - 날짜 피커 비어있고 월 필터 선택 → 해당 월 전체
+    // - 둘 다 비어있음 → 이번 달 1일 ~ 오늘 전체
     var dateRanges = (function(){
-      var pickerDate = $('tr-filter-date') ? $('tr-filter-date').value : '';
       var fmtD = function(d){ return d.getFullYear()+String(d.getMonth()+1).padStart(2,'0')+String(d.getDate()).padStart(2,'0'); };
-      if(!pickerDate){
-        // 날짜 피커가 비어있으면 오늘로 자동 설정
-        var now=new Date();
-        pickerDate = now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');
-        if($('tr-filter-date')) $('tr-filter-date').value = pickerDate;
-      }
-      // 선택된 날짜 하루만
-      return [{ sDate: pickerDate.replace(/-/g,''), eDate: pickerDate.replace(/-/g,'') }];
-      if(false){
-        // (사용 안 함 - 안전망용 블록)
-        var ranges=[], now=new Date();
-        for(var m=2;m>=0;m--){
-          var s=new Date(now.getFullYear(),now.getMonth()-m,1);
-          var e=new Date(now.getFullYear(),now.getMonth()-m+1,0);
-          if(e>now) e=now;
-          ranges.push({sDate:fmtD(s),eDate:fmtD(e)});
-        }
-        return ranges;
+      var pickerDate = $('tr-filter-date')  ? $('tr-filter-date').value  : '';
+      var pickerMonth= $('tr-filter-month') ? $('tr-filter-month').value : '';
+      var now = new Date();
+
+      if(pickerDate){
+        // 특정 날짜 선택됨 → 하루만
+        return [{ sDate: pickerDate.replace(/-/g,''), eDate: pickerDate.replace(/-/g,'') }];
+      } else if(pickerMonth){
+        // 월 필터 선택됨 → 해당 월 1일~말일 (미래는 오늘까지)
+        var parts = pickerMonth.split('-');
+        var y=parseInt(parts[0]), m=parseInt(parts[1])-1;
+        var s=new Date(y,m,1), e=new Date(y,m+1,0);
+        if(e>now) e=now;
+        return [{ sDate: fmtD(s), eDate: fmtD(e) }];
+      } else {
+        // 필터 없음 → 이번 달 1일~오늘
+        var s2=new Date(now.getFullYear(),now.getMonth(),1);
+        return [{ sDate: fmtD(s2), eDate: fmtD(now) }];
       }
     })();
     var allTx=[];
@@ -8458,6 +8460,8 @@ async function loadPopbillTransfers(){
     // remark1   : 입금자명
     // remark2~4 : 은행명, 거래유형 등
     var added=0;
+    var _newlyAdded = []; // 배치 저장용: 실제 추가된 객체 직접 추적
+    var skipped=0;        // 중복으로 스킵된 건 수
 
     // 기존 데이터는 절대 삭제하지 않음 — pbId 기준으로 중복만 체크해서 신규 건만 추가
     // (이미 저장된 내역은 매칭 정보 포함 모두 보존)
@@ -8471,7 +8475,7 @@ async function loadPopbillTransfers(){
       if(seenPbIds[pbId]) continue;
       seenPbIds[pbId] = true;
       // DB에 이미 저장된 내역이면 skip (보존)
-      if(state.transfers.some(function(t){ return t.pbId === pbId; })) continue;
+      if(state.transfers.some(function(t){ return t.pbId === pbId; })){ skipped++; continue; }
 
       // 입금액/출금액 (문자열→숫자)
       var accIn  = parseInt(tx.accIn  || '0', 10);
@@ -8522,13 +8526,13 @@ async function loadPopbillTransfers(){
         matched: false
       };
       state.transfers.push(newT);
+      _newlyAdded.push(newT);
       added++;
     }
 
-    // ── 신규 건 배치 저장 (건별 await 대신 한 번에 upsert → 저장 누락 방지)
+    // ── 신규 건 배치 저장
     if(added > 0){
-      var newBatch = state.transfers.slice(-added); // 방금 추가된 건들
-      var batchRows = newBatch.map(function(t){ return {id:t.id, data:t, updated_at:new Date().toISOString()}; });
+      var batchRows = _newlyAdded.map(function(t){ return {id:t.id, data:t, updated_at:new Date().toISOString()}; });
       for(var _bi=0; _bi<3; _bi++){  // 최대 3회 재시도
         try {
           var bRes = await dbUpsert('transfers', batchRows);
@@ -8545,7 +8549,17 @@ async function loadPopbillTransfers(){
     var _sb = $('transfersSortBtn');
     if(_sb){ _sb.textContent='↓ 최신순'; _sb.style.background='var(--accent)'; _sb.style.color='#fff'; _sb.style.border='none'; }
     renderTransfers();
-    var msg = '팝빌 입금 내역 '+added+'건 저장 완료 (전체 조회: '+allTx.length+'건)';
+    var _rangeDesc = (function(){
+      var pickerDate = $('tr-filter-date')  ? $('tr-filter-date').value  : '';
+      var pickerMonth= $('tr-filter-month') ? $('tr-filter-month').value : '';
+      if(pickerDate) return pickerDate;
+      if(pickerMonth) return pickerMonth+' 월';
+      var now2=new Date();
+      return now2.getFullYear()+'년 '+String(now2.getMonth()+1).padStart(2,'0')+'월 전체';
+    })();
+    var msg = added > 0
+      ? '✅ 신규 입금 '+added+'건 저장 완료 ('+_rangeDesc+' 조회, 기존 '+skipped+'건 유지)'
+      : '이미 최신 상태입니다 ('+_rangeDesc+' 조회 '+allTx.length+'건 — 신규 없음, 기존 '+skipped+'건 보존)';
     console.log('[팝빌] 완료:', msg);
     toast(msg, added>0?'success':'info');
 
