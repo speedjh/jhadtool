@@ -5,3 +5,4 @@ dist/
 *.log
 migration/*.json
 migration/seed*.sql
+core
