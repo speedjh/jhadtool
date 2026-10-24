@@ -6,3 +6,4 @@ dist/
 migration/*.json
 migration/seed*.sql
 core
+.dev.vars

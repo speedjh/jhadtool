@@ -1,0 +1,650 @@
+/* 자동 생성 — ai-desk/scripts/build-jhadtool.mjs (직접 고치지 말 것) */
+.jh-rank input,.jh-rank select,.jh-rank textarea{width:auto;min-height:0;letter-spacing:inherit}
+.jh-rank label{font-size:inherit;font-weight:inherit;color:inherit}
+.jh-rank table{width:auto}
+.jh-rank th,.jh-rank td{padding:revert;font-size:inherit;font-weight:revert;letter-spacing:inherit;background:none;color:inherit;white-space:normal;border-bottom:revert;transition:none;text-align:revert}
+.jh-rank tr:hover td{background:none}
+.jh-rank thead tr{border-bottom:revert}
+.jh-rank .modal{width:auto;max-width:none;max-height:none;overflow:visible;border-radius:0;border:0;box-shadow:none;animation:none}
+.jh-rank{
+  --bg: #F2F4F6; --surface: #FFFFFF; --surface2: #F9FAFB; --surface3: #F2F4F6; --border: #E5E8EB; --border2: #D1D6DB;
+  --accent: #3182F6; --accent-h: #1B64DA; --accent-l: #EBF3FE; --accent-ink: #1B64DA;
+  --t1: #191F28; --t2: #4E5968; --t3: #8B95A1; --t4: #B0B8C1;
+  --green: #00C471; --green-l: #E5F8EF; --yellow: #F5A623; --yellow-l: #FFF5E0; --red: #F04452; --red-l: #FEECEE; --orange: #F07938; --purple: #8B5CF6;
+  --r: 16px; --r-sm: 10px; --shadow: 0 1px 3px rgba(0,27,55,.04), 0 2px 12px rgba(0,27,55,.04); --shadow-lg: 0 12px 40px rgba(0,27,55,.14);
+  --side: 232px; --top: 60px;
+  --m-head: #3182F6; --m-face: #F4F8FF; --m-eye: #191F28; --m-blush: #FF9FB3; --m-bulb: #FFC93C;
+  color-scheme: light;
+}
+html.dark .jh-rank{
+  --bg: #17171C; --surface: #202027; --surface2: #26262E; --surface3: #2C2C35; --border: #33333D; --border2: #44444F;
+  --accent: #4D9AFF; --accent-h: #6BAAFF; --accent-l: #1F2B44; --accent-ink: #7DB5FF;
+  --t1: #F2F4F6; --t2: #C9CED6; --t3: #8B95A1; --t4: #5F6670;
+  --green-l: #123326; --yellow-l: #3A2F12; --red-l: #3D1C20; --m-face: #E9F1FF; color-scheme: dark;
+}
+.jh-rank *{ box-sizing: border-box }
+.jh-rank{ -webkit-text-size-adjust: 100% }
+.jh-rank{ margin: 0; min-height: 100%; background: var(--bg); color: var(--t1); font: 14px/1.6 "Pretendard Variable", Pretendard, "Noto Sans KR", -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif; letter-spacing: -0.01em; -webkit-font-smoothing: antialiased }
+.jh-rank .hidden{ display: none !important }
+.jh-rank button{ font: inherit; cursor: pointer; color: inherit }
+.jh-rank a{ color: var(--accent); text-decoration: none }
+.jh-rank input, .jh-rank select, .jh-rank textarea{ font: inherit; color: var(--t1); background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-sm); padding: 10px 12px; outline: none; transition: border-color .15s, box-shadow .15s; min-width: 0 }
+.jh-rank input:focus, .jh-rank select:focus, .jh-rank textarea:focus{ border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-l) }
+.jh-rank .num{ font-variant-numeric: tabular-nums }
+.jh-rank .btn{ display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 38px; padding: 0 16px; border-radius: 10px; border: 0; background: var(--surface3); color: var(--t1); font-weight: 600; white-space: nowrap; transition: background .15s, transform .05s }
+.jh-rank .btn:hover{ background: var(--border) }
+.jh-rank .btn:active{ transform: scale(.98) }
+.jh-rank .btn-primary{ background: var(--accent); color: #fff }
+.jh-rank .btn-primary:hover{ background: var(--accent-h) }
+.jh-rank .btn-ghost{ background: transparent; border: 1px solid var(--border) }
+.jh-rank .btn-ghost:hover{ background: var(--surface2) }
+.jh-rank .btn-danger{ background: var(--red-l); color: var(--red) }
+.jh-rank .btn-danger:hover{ background: var(--red); color: #fff }
+.jh-rank .btn-success{ background: var(--green-l); color: var(--green) }
+.jh-rank .btn-sm{ height: 30px; padding: 0 11px; font-size: 13px; border-radius: 8px }
+.jh-rank .btn-lg{ height: 50px; font-size: 16px; border-radius: 14px }
+.jh-rank .btn:disabled{ opacity: .45; pointer-events: none }
+.jh-rank .icon-btn{ width: 38px; height: 38px; border: 0; background: transparent; border-radius: 10px; font-size: 17px; display: inline-grid; place-items: center; position: relative }
+.jh-rank .icon-btn:hover{ background: var(--surface3) }
+.jh-rank .login{ position: fixed; inset: 0; display: grid; place-items: center; padding: 20px; background: var(--bg) }
+.jh-rank .login-card{ width: min(400px, 100%); background: var(--surface); border-radius: 24px; padding: 36px 30px 26px; box-shadow: var(--shadow-lg); display: grid; gap: 14px }
+.jh-rank .login-hero{ text-align: center; display: grid; justify-items: center; gap: 4px; margin-bottom: 8px }
+.jh-rank .login-hero h1{ margin: 6px 0 0; font-size: 23px; font-weight: 800 }
+.jh-rank .login-hero p{ margin: 0; color: var(--t3); font-size: 14px }
+.jh-rank .field{ display: grid; gap: 6px }
+.jh-rank .field > span{ font-size: 13px; color: var(--t2); font-weight: 600 }
+.jh-rank .err{ color: var(--red); min-height: 1.3em; margin: 0; font-size: 13px; text-align: center }
+.jh-rank .demo-pick{ display: grid; gap: 8px; border-top: 1px solid var(--border); padding-top: 14px }
+.jh-rank .demo-pick p{ margin: 0; font-size: 13px; color: var(--t3); text-align: center }
+.jh-rank .demo-pick .row{ justify-content: center }
+.jh-rank .shell{ display: flex; min-height: 100vh }
+.jh-rank .sidebar{ width: var(--side); flex: none; background: var(--surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; position: sticky; top: 0; height: 100vh; z-index: 30 }
+.jh-rank .logo{ display: flex; align-items: center; gap: 10px; padding: 18px 18px 14px }
+.jh-rank .logo b{ display: block; font-size: 15.5px; font-weight: 800 }
+.jh-rank .logo small{ display: block; font-size: 11px; color: var(--t3); margin-top: -2px }
+.jh-rank #nav{ flex: 1; overflow-y: auto; padding: 4px 10px 10px }
+.jh-rank .nav-sec{ font-size: 10.5px; font-weight: 700; color: var(--t4); letter-spacing: .06em; padding: 12px 10px 4px }
+.jh-rank .nav-item{ display: flex; align-items: center; gap: 9px; width: 100%; border: 0; background: transparent; padding: 8px 12px; border-radius: 9px; color: var(--t2); font-weight: 500; text-align: left; font-size: 13.5px; text-decoration: none; margin: 1px 0 }
+.jh-rank .nav-item.on{ font-weight: 600 }
+.jh-rank .nav-item i{ font-style: normal; width: 20px; text-align: center; font-size: 15px }
+.jh-rank .nav-item:hover{ background: var(--surface2); color: var(--t1) }
+.jh-rank .nav-item.on{ background: var(--accent-l); color: var(--accent-ink) }
+.jh-rank .nav-item .badge{ margin-left: auto }
+.jh-rank .nav-icon{ width: 18px; height: 18px; flex: none; display: grid; place-items: center }
+.jh-rank .nav-icon svg{ width: 16px; height: 16px }
+.jh-rank .nav-badge{ margin-left: auto; min-width: 19px; height: 19px; padding: 0 6px; border-radius: 10px; background: var(--accent); color: #fff; font-size: 11px; font-weight: 700; display: inline-grid; place-items: center }
+.jh-rank .nav-tag{ margin-left: 4px; font-size: 9px; font-weight: 700; color: #fff; background: var(--accent-ink); border-radius: 4px; padding: 1px 5px }
+.jh-rank .nav-parent .caret{ margin-left: auto; color: var(--t4); font-size: 15px; transition: transform .15s }
+.jh-rank .nav-parent .nav-badge + .caret{ margin-left: 6px }
+.jh-rank .nav-parent.open{ color: var(--accent-ink) }
+.jh-rank .nav-parent.open .caret{ transform: rotate(90deg) }
+.jh-rank .nav-sub{ display: none; margin: 2px 0 6px 20px; padding-left: 10px; border-left: 2px solid var(--border) }
+.jh-rank .nav-parent.open + .nav-sub{ display: block }
+.jh-rank .nav-sub .nav-item{ padding: 7px 10px; font-size: 13.5px; font-weight: 500 }
+.jh-rank .nav-sub .nav-item.on{ font-weight: 700 }
+.jh-rank .crumb{ color: var(--t3); font-weight: 600 }
+.jh-rank .crumb-sep{ color: var(--t4); margin: 0 7px }
+.jh-rank .login-brand{ display: grid; gap: 2px; justify-self: start; text-align: left; margin-bottom: 18px }
+.jh-rank .login-brand b{ font-size: 17px; font-weight: 800 }
+.jh-rank .login-brand small{ color: var(--t3); font-size: 12px }
+.jh-rank .login-card .login-hero{ text-align: left; justify-items: start }
+.jh-rank .side-foot{ border-top: 1px solid var(--border); padding: 10px }
+.jh-rank .me-card{ display: flex; align-items: center; gap: 10px; padding: 8px 6px 2px }
+.jh-rank .avatar{ width: 34px; height: 34px; border-radius: 50%; background: var(--accent-l); color: var(--accent-ink); display: grid; place-items: center; font-weight: 800; flex: none }
+.jh-rank .me-txt{ flex: 1; min-width: 0 }
+.jh-rank .me-txt b{ display: block; font-size: 13.5px }
+.jh-rank .me-txt small{ color: var(--t3); font-size: 12px }
+.jh-rank .main{ flex: 1; min-width: 0; display: flex; flex-direction: column }
+.jh-rank .topbar{ height: var(--top); display: flex; align-items: center; gap: 10px; padding: 0 24px; background: color-mix(in srgb, var(--bg) 85%, transparent); backdrop-filter: blur(12px); position: sticky; top: 0; z-index: 20 }
+.jh-rank .top-title{ font-weight: 700; color: var(--t2); font-size: 14px }
+.jh-rank .top-actions{ margin-left: auto; display: flex; gap: 4px }
+.jh-rank .menu-btn{ display: none }
+.jh-rank .bell em{ position: absolute; top: 4px; right: 3px; min-width: 17px; height: 17px; padding: 0 4px; border-radius: 9px; background: var(--red); color: #fff; font-size: 10.5px; font-style: normal; font-weight: 700; display: grid; place-items: center }
+.jh-rank .banner{ margin: 0 24px 10px; padding: 11px 16px; border-radius: 12px; background: var(--yellow-l); color: #A0620A; font-size: 13.5px; font-weight: 600 }
+.jh-rank .banner.demo{ background: var(--accent-l); color: var(--accent-ink) }
+.jh-rank #view{ padding: 4px 24px 60px; max-width: 1360px; width: 100%; margin: 0 auto; animation: jr-fade .18s ease }
+@keyframes jr-fade{ from { opacity: 0; transform: translateY(3px) } }
+.jh-rank .page-header{ display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin: 8px 0 18px }
+.jh-rank .page-header h2{ margin: 0; font-size: 24px; font-weight: 800; letter-spacing: -0.02em }
+.jh-rank .page-header p{ margin: 3px 0 0; color: var(--t3); font-size: 14px }
+.jh-rank .page-header .actions{ display: flex; gap: 8px; flex-wrap: wrap }
+.jh-rank .card{ background: var(--surface); border-radius: var(--r); padding: 20px; box-shadow: var(--shadow); margin-bottom: 14px }
+.jh-rank .card > h3, .jh-rank .card-h{ margin: 0 0 14px; font-size: 16px; font-weight: 700; display: flex; align-items: center; gap: 8px }
+.jh-rank .card-h .sp{ margin-left: auto }
+.jh-rank .stats{ display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 14px }
+.jh-rank .stat{ background: var(--surface); border-radius: var(--r); padding: 18px 20px; box-shadow: var(--shadow); cursor: default }
+.jh-rank .stat span{ display: block; font-size: 13px; color: var(--t3); font-weight: 600 }
+.jh-rank .stat b{ display: block; font-size: 27px; font-weight: 800; letter-spacing: -0.03em; margin-top: 2px }
+.jh-rank .stat small{ color: var(--t3); font-size: 12.5px }
+.jh-rank .stat.blue b{ color: var(--accent) }
+.jh-rank .stat.red b{ color: var(--red) }
+.jh-rank .stat.green b{ color: var(--green) }
+.jh-rank .stat.yellow b{ color: var(--yellow) }
+.jh-rank .stat.link{ cursor: pointer; transition: transform .12s }
+.jh-rank .stat.link:hover{ transform: translateY(-2px) }
+.jh-rank .grid2{ display: grid; grid-template-columns: 1.4fr 1fr; gap: 14px }
+.jh-rank .grid2 > *{ min-width: 0 }
+.jh-rank .row{ display: flex; gap: 8px; flex-wrap: wrap; align-items: center }
+.jh-rank .grow{ flex: 1; min-width: 160px }
+.jh-rank .muted{ color: var(--t3) }
+.jh-rank .sub{ color: var(--t3); font-size: 12.5px }
+.jh-rank .t2{ color: var(--t2) }
+.jh-rank .badge{ display: inline-flex; align-items: center; gap: 3px; height: 22px; padding: 0 8px; border-radius: 6px; font-size: 12px; font-weight: 700; background: var(--surface3); color: var(--t2); white-space: nowrap }
+.jh-rank .badge.blue{ background: var(--accent-l); color: var(--accent-ink) }
+.jh-rank .badge.green{ background: var(--green-l); color: var(--green) }
+.jh-rank .badge.yellow{ background: var(--yellow-l); color: #B7790C }
+.jh-rank .badge.red{ background: var(--red-l); color: var(--red) }
+.jh-rank .badge.purple{ background: #F1ECFE; color: var(--purple) }
+.jh-rank .dot{ width: 7px; height: 7px; border-radius: 50%; display: inline-block; background: var(--t4) }
+.jh-rank .dot.red{ background: var(--red) }
+.jh-rank .dot.blue{ background: var(--accent) }
+.jh-rank .tabs{ display: flex; gap: 4px; background: var(--surface3); padding: 4px; border-radius: 12px; width: fit-content; margin-bottom: 14px; max-width: 100%; overflow-x: auto }
+.jh-rank .tabs button{ border: 0; background: transparent; padding: 7px 14px; border-radius: 9px; font-weight: 600; color: var(--t3); white-space: nowrap }
+.jh-rank .tabs button.on{ background: var(--surface); color: var(--t1); box-shadow: var(--shadow) }
+.jh-rank .empty{ text-align: center; padding: 34px 10px; color: var(--t3); display: grid; justify-items: center; gap: 6px }
+.jh-rank .table-wrap{ background: var(--surface); border-radius: var(--r); box-shadow: var(--shadow); overflow-x: auto; margin-bottom: 14px }
+.jh-rank table.tbl{ width: 100%; border-collapse: collapse; font-size: 13.5px }
+.jh-rank .tbl th{ text-align: left; font-size: 12px; font-weight: 700; color: var(--t3); background: var(--surface2); padding: 11px 14px; white-space: nowrap; border-bottom: 1px solid var(--border) }
+.jh-rank .tbl td{ padding: 13px 14px; border-bottom: 1px solid var(--border); vertical-align: top }
+.jh-rank .tbl tr:last-child td{ border-bottom: 0 }
+.jh-rank .tbl tbody tr:hover td{ background: var(--surface2) }
+.jh-rank .tbl tr.click{ cursor: pointer }
+.jh-rank .kw{ font-weight: 700 }
+.jh-rank .ellip{ max-width: 280px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
+.jh-rank .rank{ display: inline-flex; align-items: center; justify-content: center; min-width: 46px; height: 28px; padding: 0 9px; border-radius: 8px; font-weight: 800; font-size: 14px; background: var(--surface3) }
+.jh-rank .rank.top{ background: var(--green-l); color: var(--green) }
+.jh-rank .rank.mid{ background: var(--accent-l); color: var(--accent-ink) }
+.jh-rank .rank.out{ color: var(--t3); font-weight: 600; font-size: 12.5px }
+.jh-rank .delta{ font-size: 12px; font-weight: 800; margin-left: 4px }
+.jh-rank .delta.up{ color: var(--green) }
+.jh-rank .delta.down{ color: var(--red) }
+.jh-rank .days{ display: flex; gap: 3px }
+.jh-rank .day{ width: 40px; text-align: center; border-radius: 7px; padding: 3px 0; font-size: 10.5px; background: var(--surface2); color: var(--t3) }
+.jh-rank .day b{ display: block; font-size: 12.5px; color: var(--t1) }
+.jh-rank .day.adlog{ background: transparent; border: 1px dashed var(--border2) }
+.jh-rank .buckets{ display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px }
+.jh-rank .bucket{ border: 0; background: var(--surface); border-radius: 12px; padding: 10px 16px; text-align: left; box-shadow: var(--shadow); min-width: 96px }
+.jh-rank .bucket span{ font-size: 12px; color: var(--t3); font-weight: 600; display: block }
+.jh-rank .bucket b{ font-size: 19px; font-weight: 800 }
+.jh-rank .bucket.on{ background: var(--accent); color: #fff }
+.jh-rank .bucket.on span{ color: #DCE9FF }
+.jh-rank .filters{ display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 12px }
+.jh-rank .pager{ display: flex; gap: 8px; justify-content: center; align-items: center; padding: 14px }
+.jh-rank .chat-page{ display: grid; grid-template-rows: 1fr auto; height: calc(100vh - var(--top) - 24px); max-width: 860px; margin: 0 auto; background: var(--surface); border-radius: 22px; box-shadow: var(--shadow); overflow: hidden }
+.jh-rank .chat-scroll{ overflow-y: auto; padding: 22px 22px 10px; display: flex; flex-direction: column; gap: 4px; scroll-behavior: smooth }
+.jh-rank .chat-day{ align-self: center; font-size: 12px; color: var(--t3); background: var(--surface2); border-radius: 99px; padding: 3px 12px; margin: 8px 0 }
+.jh-rank .msg-row{ display: flex; gap: 8px; align-items: flex-end; margin-top: 10px }
+.jh-rank .msg-row.user{ justify-content: flex-end; margin-top: 6px }
+.jh-rank .msg-row .ava{ width: 36px; flex: none; align-self: flex-start }
+.jh-rank .msg-col{ display: grid; gap: 4px; max-width: min(620px, 82%) }
+.jh-rank .msg-name{ font-size: 12.5px; color: var(--t2); font-weight: 700; margin-left: 2px }
+.jh-rank .bubble{ padding: 11px 15px; border-radius: 20px; white-space: pre-wrap; word-break: break-word; line-height: 1.6; font-size: 14.5px }
+.jh-rank .msg-row.bot .bubble{ background: var(--surface3); border-top-left-radius: 6px }
+.jh-rank .msg-row.user .bubble{ background: var(--accent); color: #fff; border-bottom-right-radius: 6px }
+.jh-rank .bubble b{ font-weight: 800 }
+.jh-rank .msg-row.bot .bubble b{ color: var(--accent-ink) }
+.jh-rank .msg-time{ font-size: 11px; color: var(--t4); white-space: nowrap; padding-bottom: 2px }
+.jh-rank .typing{ display: inline-flex; gap: 4px; padding: 14px 16px }
+.jh-rank .typing i{ width: 7px; height: 7px; border-radius: 50%; background: var(--t4); animation: jr-tp 1.2s infinite }
+.jh-rank .typing i:nth-child(2){ animation-delay: .15s }
+.jh-rank .typing i:nth-child(3){ animation-delay: .3s }
+@keyframes jr-tp{ 0%, 60%, 100% { transform: translateY(0); opacity: .5 } 30% { transform: translateY(-4px); opacity: 1 } }
+.jh-rank .cards{ display: grid; gap: 8px; margin-top: 2px }
+.jh-rank .mcard{ background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 13px 15px; font-size: 13.5px }
+.jh-rank .mcard .t{ font-weight: 700; font-size: 14px }
+.jh-rank .mcard .s{ color: var(--t3); font-size: 12.5px; margin-top: 2px }
+.jh-rank .chips{ display: flex; flex-wrap: wrap; gap: 5px; margin-top: 7px }
+.jh-rank .chip{ font-size: 12px; padding: 3px 9px; border-radius: 99px; background: var(--surface3); color: var(--t2); font-weight: 600; white-space: nowrap }
+.jh-rank .chip.red{ background: var(--red-l); color: var(--red) }
+.jh-rank .chip.green{ background: var(--green-l); color: var(--green) }
+.jh-rank .chip.blue{ background: var(--accent-l); color: var(--accent-ink) }
+.jh-rank .chip.yellow{ background: var(--yellow-l); color: #B7790C }
+.jh-rank .qr{ display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px }
+.jh-rank .qr button{ border: 1px solid var(--border); background: var(--surface); color: var(--accent-ink); border-radius: 99px; padding: 6px 13px; font-size: 13px; font-weight: 600 }
+.jh-rank .qr button:hover{ background: var(--accent-l); border-color: var(--accent-l) }
+.jh-rank .qr button.primary{ background: var(--accent); border-color: var(--accent); color: #fff }
+.jh-rank .chat-foot{ border-top: 1px solid var(--border); padding: 10px 14px 14px; background: var(--surface) }
+.jh-rank .suggest{ display: flex; gap: 6px; overflow-x: auto; padding-bottom: 8px; scrollbar-width: none }
+.jh-rank .suggest::-webkit-scrollbar{ display: none }
+.jh-rank .suggest button{ flex: none; border: 0; background: var(--surface3); border-radius: 99px; padding: 7px 13px; font-size: 13px; font-weight: 600; color: var(--t2) }
+.jh-rank .suggest button:hover{ background: var(--accent-l); color: var(--accent-ink) }
+.jh-rank .composer{ display: flex; align-items: flex-end; gap: 8px; background: var(--surface3); border-radius: 22px; padding: 6px 6px 6px 16px }
+.jh-rank .composer textarea{ flex: 1; border: 0; background: transparent; resize: none; max-height: 140px; padding: 8px 0; box-shadow: none; font-size: 15px }
+.jh-rank .send{ width: 38px; height: 38px; border-radius: 50%; border: 0; background: var(--accent); color: #fff; font-size: 17px; display: grid; place-items: center; flex: none }
+.jh-rank .send:disabled{ background: var(--border2) }
+.jh-rank .welcome{ display: grid; justify-items: center; text-align: center; gap: 6px; padding: 40px 10px 10px }
+.jh-rank .welcome h2{ margin: 6px 0 0; font-size: 22px; font-weight: 800 }
+.jh-rank .welcome p{ margin: 0; color: var(--t3); font-size: 14.5px }
+.jh-rank .welcome .starters{ display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 8px; width: 100%; max-width: 640px; margin-top: 18px }
+.jh-rank .starter{ border: 0; text-align: left; background: var(--surface2); border-radius: 16px; padding: 14px 16px; display: grid; gap: 3px }
+.jh-rank .starter:hover{ background: var(--accent-l) }
+.jh-rank .starter b{ font-size: 14px }
+.jh-rank .starter span{ font-size: 12.5px; color: var(--t3) }
+.jh-rank table.set{ border-collapse: collapse; font-size: 12px; width: 100%; background: var(--surface) }
+.jh-rank table.set td, .jh-rank table.set th{ border: 1px solid var(--border); padding: 4px 6px; vertical-align: top; text-align: left }
+.jh-rank table.set th{ background: var(--surface2); color: var(--t3) }
+.jh-rank .tsv{ width: 100%; height: 150px; font: 12px/1.4 ui-monospace, Consolas, monospace }
+.jh-rank .mascot{ flex: none; overflow: visible }
+.jh-rank .mascot .head{ fill: var(--m-head) }
+.jh-rank .mascot .face{ fill: var(--m-face) }
+.jh-rank .mascot .ear{ fill: var(--m-head); opacity: .85 }
+.jh-rank .mascot .neck{ fill: var(--m-head); opacity: .65 }
+.jh-rank .mascot .eye{ fill: var(--m-eye); transform-origin: center; transform-box: fill-box; animation: jr-blink 4.2s infinite }
+.jh-rank .mascot .eyeline, .jh-rank .mascot .mouth{ fill: none; stroke: var(--m-eye); stroke-width: 3.2; stroke-linecap: round }
+.jh-rank .mascot .mouthfill{ fill: var(--m-eye) }
+.jh-rank .mascot .blush{ fill: var(--m-blush); opacity: .55 }
+.jh-rank .mascot .ant{ stroke: var(--m-head); stroke-width: 3.2; stroke-linecap: round }
+.jh-rank .mascot .bulb{ fill: var(--m-bulb) }
+.jh-rank .mascot .m-body{ transform-origin: 50% 90%; animation: jr-bob 2.8s ease-in-out infinite }
+.jh-rank .mascot.m-think .bulb{ animation: jr-glow .8s ease-in-out infinite alternate }
+.jh-rank .mascot.m-think .dots circle{ fill: var(--t4); animation: jr-pop 1.2s infinite }
+.jh-rank .mascot.m-think .dots circle:nth-child(2){ animation-delay: .2s }
+.jh-rank .mascot.m-think .dots circle:nth-child(3){ animation-delay: .4s }
+.jh-rank .mascot.m-happy .m-body{ animation: jr-hop .7s ease-out 2 }
+.jh-rank .mascot .sparks path{ fill: var(--m-bulb); animation: jr-twinkle 1s ease-in-out infinite alternate }
+.jh-rank .mascot.m-warn .m-body{ animation: jr-shake .5s ease-in-out 2 }
+@keyframes jr-blink{ 0%, 92%, 100% { transform: scaleY(1) } 95% { transform: scaleY(.1) } }
+@keyframes jr-bob{ 50% { transform: translateY(-2.5px) rotate(-2deg) } }
+@keyframes jr-hop{ 40% { transform: translateY(-7px) scale(1.03) } }
+@keyframes jr-shake{ 25% { transform: rotate(-5deg) } 75% { transform: rotate(5deg) } }
+@keyframes jr-glow{ to { fill: #FFF3B0 } }
+@keyframes jr-pop{ 0%, 100% { opacity: .25 } 50% { opacity: 1 } }
+@keyframes jr-twinkle{ to { opacity: .3 } }
+@media (prefers-reduced-motion: reduce){
+.jh-rank .mascot *{ animation: none !important }
+}
+.jh-rank .fab{ position: fixed; right: 22px; bottom: 22px; width: 60px; height: 60px; border-radius: 50%; border: 0; background: var(--surface); box-shadow: var(--shadow-lg); display: grid; place-items: center; z-index: 40; transition: transform .15s }
+.jh-rank .fab:hover{ transform: scale(1.06) }
+.jh-rank .notif-pop{ position: fixed; top: 58px; right: 20px; width: min(380px, calc(100% - 24px)); max-height: 70vh; overflow-y: auto; background: var(--surface); border-radius: 18px; box-shadow: var(--shadow-lg); z-index: 50; padding: 8px }
+.jh-rank .notif{ display: flex; gap: 10px; padding: 11px 12px; border-radius: 12px; font-size: 13.5px; cursor: pointer; white-space: pre-wrap }
+.jh-rank .notif:hover{ background: var(--surface2) }
+.jh-rank .notif .when{ color: var(--t4); font-size: 11.5px }
+.jh-rank .notif.unread b::before{ content: ''; display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--red); margin-right: 6px; vertical-align: middle }
+.jh-rank .modal{ position: fixed; inset: 0; background: rgba(0,0,0,.36); display: grid; place-items: center; z-index: 60; padding: 16px }
+.jh-rank .modal-card{ background: var(--surface); border-radius: 22px; padding: 26px; width: min(880px, 100%); max-height: 88vh; overflow: auto; position: relative; box-shadow: var(--shadow-lg) }
+.jh-rank .x{ position: absolute; right: 16px; top: 14px; border: 0; background: var(--surface3); width: 32px; height: 32px; border-radius: 50%; color: var(--t3); z-index: 2 }
+.jh-rank .toast{ position: fixed; bottom: 26px; left: 50%; transform: translateX(-50%); background: #191F28; color: #fff; padding: 12px 18px; border-radius: 14px; z-index: 70; font-weight: 600; font-size: 14px; max-width: calc(100% - 32px); box-shadow: var(--shadow-lg) }
+.jh-rank .bar{ height: 8px; background: var(--surface3); border-radius: 99px; overflow: hidden }
+.jh-rank .bar i{ display: block; height: 100%; background: var(--accent); border-radius: 99px }
+.jh-rank svg.chart{ width: 100%; height: 220px; color: var(--t3) }
+.jh-rank .flow{ display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px }
+.jh-rank .flow div{ background: var(--surface2); border-radius: 14px; padding: 12px 14px; font-size: 13px }
+.jh-rank .flow b{ display: block; font-size: 14px; margin-bottom: 2px }
+.jh-rank .compare{ width: 100%; border-collapse: collapse; font-size: 13.5px }
+.jh-rank .compare th, .jh-rank .compare td{ border-bottom: 1px solid var(--border); padding: 10px 12px; text-align: left; vertical-align: top }
+.jh-rank .compare th{ background: var(--surface2); color: var(--t3); font-size: 12px }
+@media (max-width: 960px){
+.jh-rank .grid2{ grid-template-columns: 1fr }
+.jh-rank .sidebar{ position: fixed; left: 0; transform: translateX(-100%); transition: transform .2s; box-shadow: var(--shadow-lg) }
+.jh-rank .sidebar.open{ transform: none }
+.jh-rank .menu-btn{ display: inline-grid }
+.jh-rank .topbar{ padding: 0 12px }
+.jh-rank #view{ padding: 4px 12px 80px }
+.jh-rank .banner{ margin: 0 12px 10px }
+.jh-rank .chat-page{ height: calc(100vh - var(--top) - 12px); border-radius: 18px }
+.jh-rank .chat-scroll{ padding: 16px 12px 8px }
+.jh-rank .hide-m{ display: none }
+.jh-rank .page-header h2{ font-size: 21px }
+.jh-rank .stats{ grid-template-columns: 1fr 1fr; gap: 10px }
+.jh-rank .stat{ padding: 14px 16px }
+.jh-rank .stat b{ font-size: 22px }
+.jh-rank .stat small{ display: block; line-height: 1.4 }
+.jh-rank .buckets{ flex-wrap: nowrap; overflow-x: auto; padding-bottom: 4px }
+.jh-rank .bucket{ flex: none; min-width: 84px }
+.jh-rank .msg-col{ max-width: 88% }
+.jh-rank .fab{ right: 14px; bottom: 14px }
+}
+.jh-rank .main.chat-mode{ height: 100vh; height: 100dvh; overflow: hidden }
+.jh-rank #view.chat-mode{ flex: 1; min-height: 0; display: flex; flex-direction: column; padding-bottom: 16px }
+.jh-rank #view.chat-mode .chat-page{ flex: 1; height: auto; min-height: 0; width: 100% }
+.jh-rank .dialog{ position: fixed; inset: 0; background: rgba(0,0,0,.36); display: grid; place-items: center; z-index: 80; padding: 16px }
+.jh-rank .dialog-card{ background: var(--surface); border-radius: 20px; padding: 24px; width: min(420px, 100%); box-shadow: var(--shadow-lg); display: grid; gap: 14px }
+.jh-rank .dialog-card p{ margin: 0; white-space: pre-wrap; font-size: 15px; line-height: 1.6 }
+.jh-rank .dialog-card .row{ justify-content: flex-end }
+.jh-rank .host-note{ display: grid; gap: 4px; padding: 14px 18px; background: var(--surface2); box-shadow: none; border: 1px solid var(--border) }
+.jh-rank .host-note b{ font-size: 13.5px }
+.jh-rank .host-note span{ color: var(--t2); font-size: 13.5px }
+.jh-rank .host-note.blue{ background: var(--accent-l); border-color: transparent }
+.jh-rank .host-note.blue b{ color: var(--accent-ink) }
+.jh-rank .host-empty{ text-align: center; color: var(--t3); padding: 48px 12px !important }
+.jh-rank .banner a{ color: inherit; text-decoration: underline; margin-left: 4px }
+.jh-rank .page-root{ display: contents }
+.jh-rank .adl{ --adl-link: #1A49E6; --adl-link2: #3232FF; --adl-line: #D9DEE3; --adl-head: #ECEFF2; --adl-dark: #3A4250; color: var(--t1) }
+html.dark .jh-rank .adl{ --adl-link: #8FB0FF; --adl-link2: #A5B4FF; --adl-line: #3A3A45; --adl-head: #2A2A33; --adl-dark: #4A5263 }
+.jh-rank .adl-page-h{ display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin: 6px 0 10px }
+.jh-rank .adl-page-h h2{ margin: 0; font-size: 21px; font-weight: 800 }
+.jh-rank .adl-status{ font-size: 12.5px; color: var(--green); font-weight: 600 }
+.jh-rank .adl-status.warn{ color: var(--orange) }
+.jh-rank .adl-guide{ margin-bottom: 10px; font-size: 13px; color: var(--t2) }
+.jh-rank .adl-guide summary{ cursor: pointer; color: var(--t3); font-weight: 600 }
+.jh-rank .adl-guide ul{ margin: 6px 0 0; padding-left: 18px }
+.jh-rank .adl-guide li{ margin: 2px 0 }
+.jh-rank .adl-reg{ background: var(--surface); border: 1px solid var(--adl-line); border-radius: 12px; overflow: hidden; margin-bottom: 12px }
+.jh-rank .adl-reg-h{ background: var(--adl-dark); color: #fff; padding: 11px 18px; display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap }
+.jh-rank .adl-reg-h b{ font-size: 15px }
+.jh-rank .adl-reg-h span{ font-size: 12px; opacity: .8 }
+.jh-rank .adl-reg-b{ display: flex; gap: 12px; align-items: flex-end; padding: 14px 18px; flex-wrap: wrap }
+.jh-rank .adl-reg-b label{ display: grid; gap: 5px; font-size: 12.5px; font-weight: 600; color: var(--t2); min-width: 160px }
+.jh-rank .adl-reg-b .grow{ flex: 1 1 220px }
+.jh-rank .adl-reg-b .grow2{ flex: 2 1 300px }
+.jh-rank .adl-reg-b select{ height: 42px }
+.jh-rank .adl-in{ display: flex; align-items: stretch; border: 1px solid var(--border); border-radius: var(--r-sm); background: var(--surface); overflow: hidden }
+.jh-rank .adl-in i{ font-style: normal; width: 40px; display: grid; place-items: center; background: var(--surface2); border-right: 1px solid var(--border); font-size: 14px }
+.jh-rank .adl-in input{ border: 0; border-radius: 0; flex: 1; height: 40px }
+.jh-rank .adl-in input:focus{ box-shadow: none }
+.jh-rank .adl-buckets{ display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px }
+.jh-rank .adl-bk{ width: 84px; padding: 8px 4px 7px; border: 2px solid var(--adl-line); border-radius: 10px; background: var(--surface); display: grid; justify-items: center; gap: 1px; transition: border-color .12s, transform .05s }
+.jh-rank .adl-bk span{ font-size: 11.5px; color: var(--t3); font-weight: 600 }
+.jh-rank .adl-bk b{ font-size: 17px; font-weight: 800 }
+.jh-rank .adl-bk:hover{ border-color: var(--t4) }
+.jh-rank .adl-bk.on{ border-color: var(--accent); background: var(--accent-l) }
+.jh-rank .c-blue{ color: #1A49E6 }
+.jh-rank .c-red{ color: #E5383B }
+.jh-rank .c-green{ color: #12B886 }
+html.dark .jh-rank .c-blue{ color: #7DA2FF }
+.jh-rank .adl-panel{ background: var(--surface2); border: 1px solid var(--adl-line); border-radius: 12px; padding: 12px 16px; display: grid; gap: 10px; margin-bottom: 12px }
+.jh-rank .adl-row{ display: flex; align-items: center; gap: 8px }
+.jh-rank .adl-row.wrap{ flex-wrap: wrap }
+.jh-rank .adl-row select{ height: 34px; padding: 4px 10px; min-width: 180px }
+.jh-rank .adl-row .lbl{ font-weight: 700; font-size: 13px; margin-right: 2px }
+.jh-rank .adl-row .sep{ width: 1px; height: 20px; background: var(--adl-line); margin: 0 4px }
+.jh-rank .adl-seg{ display: inline-flex; background: var(--surface3); border-radius: 9px; padding: 3px }
+.jh-rank .adl-seg button{ border: 0; background: transparent; padding: 5px 13px; border-radius: 7px; font-size: 13px; font-weight: 600; color: var(--t3) }
+.jh-rank .adl-seg button.on{ background: var(--accent); color: #fff }
+.jh-rank .adl-seg.wide{ display: flex }
+.jh-rank .adl-seg.wide button{ flex: 1; padding: 9px }
+.jh-rank .adl-chip{ border: 1px solid var(--adl-line); background: var(--surface); color: var(--t3); border-radius: 7px; padding: 4px 10px; font-size: 12.5px; font-weight: 700 }
+.jh-rank .adl-chip.on{ background: var(--t2); color: #fff; border-color: transparent }
+.jh-rank .adl-chip.green.on{ background: #12B886 }
+.jh-rank .adl-chip.blue.on{ background: #4263EB }
+.jh-rank .adl-actions{ display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; margin: 4px 0 10px }
+.jh-rank .adl-actions.bottom{ justify-content: flex-start; margin-top: 12px }
+.jh-rank .adl-btns{ display: flex; gap: 5px; flex-wrap: wrap; align-items: center }
+.jh-rank .adl-btn{ border: 1px solid transparent; border-radius: 6px; padding: 5px 10px; font-size: 12.5px; font-weight: 700; color: #fff; background: #495057; white-space: nowrap; line-height: 1.35; transition: filter .12s }
+.jh-rank .adl-btn:hover{ filter: brightness(1.1) }
+.jh-rank .adl-btn:disabled{ opacity: .5 }
+.jh-rank .adl-btn.sm{ padding: 3px 8px; font-size: 12px }
+.jh-rank .adl-btn.big{ padding: 11px 26px; font-size: 14px; border-radius: 9px }
+.jh-rank .adl-btn.dark{ background: #343A40 }
+.jh-rank .adl-btn.green{ background: #2B9348 }
+.jh-rank .adl-btn.dgreen{ background: #1B5E3B }
+.jh-rank .adl-btn.teal{ background: #5DB7C9 }
+.jh-rank .adl-btn.yellow{ background: #F7E26B; color: #6B5A00 }
+.jh-rank .adl-btn.red{ background: #E5383B }
+.jh-rank .adl-btn.indigo{ background: #4C3BCF }
+.jh-rank .adl-btn.olive{ background: #7FA84A }
+.jh-rank .adl-btn.pink{ background: #D6336C }
+.jh-rank .adl-btn.blue{ background: #1C7ED6 }
+.jh-rank .adl-btn.light, .jh-rank .adl-btn.outline{ background: var(--surface); color: var(--t1); border-color: var(--adl-line, #D9DEE3) }
+.jh-rank .adl-pager{ display: inline-flex; gap: 4px; margin-left: 8px }
+.jh-rank .adl-pager .pg{ min-width: 34px; height: 30px; border: 1px solid var(--adl-line); background: var(--surface); border-radius: 5px; font-size: 13px; color: var(--t3) }
+.jh-rank .adl-pager .pg.on{ background: #2F80ED; border-color: #2F80ED; color: #fff; font-weight: 700 }
+.jh-rank .adl-search{ display: flex; gap: 6px; align-items: center }
+.jh-rank .adl-search select, .jh-rank .adl-search input{ height: 34px; padding: 4px 10px; font-size: 13px }
+.jh-rank .adl-search input{ width: 220px }
+.jh-rank .adl-sortbar{ display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 13px; color: var(--t2); margin-bottom: 8px }
+.jh-rank .adl-sortbar label{ display: flex; align-items: center; gap: 5px; font-weight: 600 }
+.jh-rank .adl-sortbar a{ color: var(--t2); cursor: pointer; font-weight: 600 }
+.jh-rank .adl-sortbar a.on{ color: var(--accent) }
+.jh-rank .adl-sortbar em{ font-style: normal; color: var(--t4); padding: 0 1px }
+.jh-rank .adl-sortbar em.on{ color: var(--accent); font-weight: 800 }
+.jh-rank .adl-sortbar i{ font-style: normal; color: var(--t4) }
+.jh-rank .adl-tbl-wrap{ overflow-x: auto; background: var(--surface); border: 1px solid var(--adl-line, #D9DEE3); border-radius: 10px }
+.jh-rank .adl-tbl-wrap.tall{ max-height: 62vh; overflow: auto }
+.jh-rank .adl-tbl{ width: 100%; border-collapse: collapse; font-size: 13px; min-width: 1180px }
+.jh-rank .adl-tbl.list{ min-width: 760px }
+.jh-rank .adl-tbl th{ background: var(--adl-head, #ECEFF2); border: 1px solid var(--adl-line, #D9DEE3); padding: 7px 8px; font-weight: 700; font-size: 12.5px; white-space: nowrap; position: sticky; top: 0; z-index: 1 }
+.jh-rank .adl-tbl td{ border: 1px solid var(--adl-line, #D9DEE3); padding: 7px 9px; vertical-align: top }
+.jh-rank .adl-tbl td.c{ text-align: center; vertical-align: middle }
+.jh-rank .adl-tbl td.r{ text-align: right }
+.jh-rank .adl-tbl .w-url{ min-width: 300px }
+.jh-rank .adl-tbl .w-no{ width: 64px }
+.jh-rank .adl-tbl .w-grp{ width: 110px }
+.jh-rank .adl-tbl .w-kw{ width: 190px }
+.jh-rank .adl-tbl .w-vol{ width: 240px }
+.jh-rank .adl-tbl .w-reg{ width: 100px; white-space: nowrap }
+.jh-rank .adl-tbl td.num{ white-space: nowrap }
+.jh-rank .adl-tbl .w-mng{ width: 206px }
+.jh-rank .adl-tbl th .fl{ float: left }
+.jh-rank .adl-tbl th .fr{ float: right }
+.jh-rank .adl-item:nth-child(even) td{ background: color-mix(in srgb, var(--surface2) 55%, transparent) }
+.jh-rank .adl-item + .adl-item tr:first-child td{ border-top: 2px solid var(--t4) }
+.jh-rank .adl-tbl .kw{ font-weight: 600; color: var(--adl-link, #1A49E6) }
+.jh-rank .adl-tbl a.kw{ cursor: pointer }
+.jh-rank .adl-tbl .mp{ color: var(--t4); font-size: 11px; margin-left: 1px }
+.jh-rank .adl-tbl .url{ color: var(--t2); word-break: break-all }
+.jh-rank .adl-tbl .fr{ float: right; margin-left: 8px }
+.jh-rank .adl-tbl .fr a, .jh-rank .adl-tbl td > a{ color: var(--adl-link2, #3232FF) }
+.jh-rank .adl-tbl .id{ color: var(--t4) }
+.jh-rank .adl-tbl .vol b{ font-weight: 800 }
+.jh-rank .adl-tbl .rep{ color: var(--t3); font-size: 12px; margin-top: 2px }
+.jh-rank .adl-tbl .memo{ white-space: pre-wrap; color: var(--t2) }
+.jh-rank .adl-tbl .mute, .jh-rank .adl .mute, .jh-rank .adl-modal .mute{ color: var(--t4) }
+.jh-rank .adl-tbl .mng{ vertical-align: middle }
+.jh-rank .adl-mng{ display: flex; flex-wrap: wrap; gap: 4px; justify-content: center }
+.jh-rank .adl-tbl.cmp tr.mine td{ background: var(--accent-l) !important; border-top: 2px solid #E64980; border-bottom: 2px solid #E64980 }
+.jh-rank .adl-tbl .ellip{ max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
+.jh-rank .adl-days{ display: flex; flex-wrap: wrap; gap: 2px }
+.jh-rank .adl-days.rep{ border: 1px solid #ddd; border-radius: 10px; padding: 12px; gap: 6px; justify-content: flex-start; margin: 14px 0 }
+.jh-rank .adl-day{ min-width: 74px; padding: 4px 6px; text-align: center; display: grid; gap: 0; border-radius: 6px; border: 1px solid transparent }
+.jh-rank .adl-day .d{ font-size: 12px; color: var(--t2) }
+.jh-rank .adl-day b{ font-size: 13.5px; font-weight: 800 }
+.jh-rank .adl-day i{ font-style: normal; font-size: 11.5px; color: var(--t3); font-weight: 600 }
+.jh-rank .adl-day.ext{ border: 1px dashed var(--t4) }
+.jh-rank .adl-day .sun, .jh-rank .adl-modal .sun{ color: #E5383B }
+.jh-rank .adl-day .sat, .jh-rank .adl-modal .sat{ color: #1C7ED6 }
+.jh-rank .adl-more{ display: block; margin: 6px auto 0; border: 1px solid var(--adl-line); background: var(--surface); border-radius: 5px; padding: 2px 10px; font-size: 12px; color: var(--t3) }
+.jh-rank .adl-warn{ font-size: 12px; color: var(--orange); font-weight: 600; margin-bottom: 4px }
+.jh-rank .adl-warn.red{ color: var(--red) }
+.jh-rank .adl-tag{ font-size: 10.5px; font-weight: 700; padding: 1px 5px; border-radius: 4px; background: var(--yellow-l); color: #A0620A }
+.jh-rank .adl-tag.blue{ background: var(--accent-l); color: var(--accent-ink) }
+.jh-rank .adl-empty{ padding: 50px 16px; text-align: center; color: var(--t3); display: grid; justify-items: center; gap: 8px; background: var(--surface); border: 1px solid var(--adl-line, #D9DEE3); border-radius: 10px }
+.jh-rank .adl-empty.sm{ padding: 20px; border: 0 }
+.jh-rank .adl .up, .jh-rank .adl-modal .up{ color: #E5383B; font-style: normal; font-weight: 700 }
+.jh-rank .adl .down, .jh-rank .adl-modal .down{ color: #1C7ED6; font-style: normal; font-weight: 700 }
+.jh-rank .adl-modal .up-s{ color: #1C7ED6; font-size: 11px }
+.jh-rank .adl-modal .down-s{ color: #E5383B; font-size: 11px }
+.jh-rank .adl-modal .new{ font-size: 10.5px; color: var(--green); font-weight: 800 }
+.jh-rank .adl-cards{ display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px }
+.jh-rank .adl-cards.chart{ grid-template-columns: repeat(auto-fill, minmax(420px, 1fr)) }
+.jh-rank .adl-card{ position: relative; background: var(--surface); border: 1px solid var(--adl-line); border-radius: 12px; padding: 14px; display: grid; gap: 4px; align-content: start }
+.jh-rank .adl-card .ck{ position: absolute; right: 10px; top: 10px }
+.jh-rank .adl-card .k{ font-weight: 800; padding-right: 22px }
+.jh-rank .adl-card .n{ font-size: 12.5px; color: var(--t3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
+.jh-rank .adl-card .r{ display: flex; align-items: baseline; gap: 4px }
+.jh-rank .adl-card .r b{ font-size: 30px; font-weight: 800; line-height: 1.1 }
+.jh-rank .adl-card .r span{ color: var(--t3) }
+.jh-rank .adl-card .r em{ margin-left: 6px }
+.jh-rank .adl-card .m{ font-size: 12px; color: var(--t3) }
+.jh-rank .adl-card .b{ display: flex; gap: 4px; margin-top: 4px }
+.jh-rank .adl-card .r-inline{ color: var(--accent); margin-left: 6px }
+.jh-rank .spark-empty{ border-bottom: 1px dashed var(--border) }
+.jh-rank .adl-chart{ display: block; margin: 6px 0 }
+.jh-rank .adl-chart .grid{ stroke: var(--border); stroke-width: 1 }
+.jh-rank .adl-chart .ax{ fill: var(--t3); font-size: 11px }
+.jh-rank .adl-chart .lbl{ fill: #fff; font-size: 10.5px; font-weight: 700 }
+.jh-rank .adl.cap .cap-blur{ filter: blur(5px); user-select: none }
+.jh-rank .adl-body{ position: relative }
+.jh-rank .adl-body.wm::after{ content: '재흥광고기획'; position: absolute; inset: 0; display: grid; place-items: center; font-size: 88px; font-weight: 800; color: rgba(76, 59, 207, .09); transform: rotate(-20deg); pointer-events: none; white-space: nowrap; overflow: hidden }
+.jh-rank .adl-modal .mh{ margin: 0 0 14px; font-size: 18px }
+.jh-rank .adl-modal .mh small{ color: var(--t3); font-size: 13px; font-weight: 500; margin-left: 6px }
+.jh-rank .adl-modal .fld{ display: grid; gap: 6px; padding: 12px 0; border-bottom: 1px solid var(--border) }
+.jh-rank .adl-modal .fld:last-of-type{ border-bottom: 0 }
+.jh-rank .adl-modal .fld p{ margin: 0 }
+.jh-rank .adl-modal textarea{ width: 100%; resize: vertical }
+.jh-rank .adl-modal .row{ display: flex; gap: 8px; align-items: center; flex-wrap: wrap }
+.jh-rank .adl-modal .row.c{ justify-content: center; margin-top: 12px }
+.jh-rank .adl-modal .sp{ flex: 1 }
+.jh-rank .adl-pal{ display: flex; flex-wrap: wrap; gap: 6px }
+.jh-rank .adl-pal button{ width: 26px; height: 26px; border-radius: 5px; border: 2px solid var(--border2); background: var(--surface); font-size: 11px; color: var(--t4) }
+.jh-rank .adl-pal button.on{ outline: 3px solid var(--accent); outline-offset: 1px }
+.jh-rank .adl-cmp-bar{ margin-bottom: 10px }
+.jh-rank .adl-cmp-bar select{ height: 32px; padding: 3px 8px; margin-left: 4px }
+.jh-rank .adl-order{ list-style: none; margin: 0; padding: 0; max-height: 58vh; overflow: auto; border: 1px solid var(--border); border-radius: 10px }
+.jh-rank .adl-order li{ display: flex; align-items: center; gap: 8px; padding: 7px 10px; border-bottom: 1px solid var(--border); font-size: 13px; background: var(--surface) }
+.jh-rank .adl-order li .h{ cursor: grab; color: var(--t4) }
+.jh-rank .adl-order li .sp{ flex: 1 }
+.jh-rank .adl-order li button{ border: 1px solid var(--border); background: var(--surface); border-radius: 5px; font-size: 11.5px; padding: 1px 7px }
+.jh-rank .adl-report{ position: relative; background: #fff; color: #222; border: 1px solid #ccc; border-radius: 10px; padding: 22px 24px; overflow: hidden }
+.jh-rank .adl-report h3{ text-align: center; margin: 0 auto 18px; border-bottom: 2px solid #222; width: fit-content; padding: 0 30px 6px }
+.jh-rank .adl-report dl{ display: grid; grid-template-columns: 110px 1fr; margin: 0 }
+.jh-rank .adl-report dt, .jh-rank .adl-report dd{ margin: 0; padding: 5px 0; border-bottom: 1px solid #bbb }
+.jh-rank .adl-report dt{ color: #888; font-weight: 600 }
+.jh-rank .adl-report dd{ font-weight: 700 }
+.jh-rank .adl-report .adl-day .d{ color: #555 }
+.jh-rank .adl-report .adl-day i{ color: #888 }
+.jh-rank .adl-report .adl-day b{ color: #222 }
+.jh-rank .adl-rep-card{ border: 1px solid #ddd; border-radius: 12px; padding: 14px 18px; margin-top: 12px }
+.jh-rank .adl-rep-card .legend{ float: right; font-size: 12px; color: #666 }
+.jh-rank .adl-rep-card .legend i{ display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin: 0 4px 0 10px; vertical-align: middle }
+.jh-rank .adl-report .adl-chart .ax{ fill: #777 }
+.jh-rank .adl-report .adl-chart .grid{ stroke: #eee }
+.jh-rank .adl-report .foot{ display: flex; justify-content: space-between; margin-top: 14px; font-size: 12px; color: #444 }
+.jh-rank .adl-report .wmk{ position: absolute; left: 50%; top: 30%; transform: translate(-50%, -50%) rotate(28deg); font-size: 96px; font-weight: 800; color: rgba(90, 80, 230, .12); pointer-events: none; white-space: nowrap }
+.jh-rank .adl-report.nowm .wmk{ display: none }
+.jh-rank .mf{ display: grid; gap: 12px }
+.jh-rank .modal-card:has(.adl-modal.wide){ width: min(1080px, 100%) }
+@media (max-width: 860px){
+.jh-rank .adl-search{ flex-wrap: wrap; width: 100% }
+.jh-rank .adl-search input{ flex: 1; width: auto; min-width: 120px }
+.jh-rank .adl-bk{ width: calc(20% - 7px); min-width: 62px }
+.jh-rank .adl-bk b{ font-size: 15px }
+.jh-rank .adl-reg-b label{ min-width: 0; flex: 1 1 100% }
+.jh-rank .adl-reg-b .adl-btn.big{ width: 100% }
+.jh-rank .adl-cards.chart{ grid-template-columns: 1fr }
+.jh-rank .adl-report .wmk{ font-size: 54px }
+.jh-rank .adl-pager{ margin-left: 0 }
+}
+.jh-rank .report-shot img{ display: block; max-width: 100%; border: 1px solid var(--border); border-radius: 12px; margin-bottom: 10px; background: #fff }
+.jh-rank .mcard.report-shot{ padding: 12px }
+.jh-rank .kr-card{ padding: 0; overflow: hidden; max-width: 560px }
+.jh-rank .kr-head{ display: flex; gap: 12px; align-items: center; padding: 14px 14px 8px; background: linear-gradient(180deg, var(--accent-l), var(--surface)) }
+.jh-rank .kr-robot{ width: 76px; height: 76px; flex: none; animation: jr-kr-bob 2.4s ease-in-out infinite }
+@keyframes jr-kr-bob{ 0%, 100% { transform: translateY(0) } 50% { transform: translateY(-4px) } }
+.jh-rank .kr-robot .kr-eye{ transform-box: fill-box; transform-origin: center; animation: jr-kr-blink 4s infinite }
+@keyframes jr-kr-blink{ 0%, 92%, 100% { transform: scaleY(1) } 95% { transform: scaleY(.1) } }
+.jh-rank .kr-work .kr-robot .kr-ant{ animation: jr-kr-glow .7s ease-in-out infinite }
+@keyframes jr-kr-glow{ 0%, 100% { fill: #ffd43b } 50% { fill: #ff922b } }
+.jh-rank .kr-robot .kr-mouth{ transform-box: fill-box; transform-origin: center }
+.jh-rank .kr-work .kr-robot .kr-mouth{ animation: jr-kr-talk .35s ease-in-out infinite }
+@keyframes jr-kr-talk{ 0%, 100% { transform: scaleY(1) } 50% { transform: scaleY(2.2) } }
+.jh-rank .kr-robot .kr-lens{ transform-box: fill-box; transform-origin: center; opacity: 0; transition: opacity .2s }
+.jh-rank .kr-work .kr-robot .kr-lens{ opacity: 1; animation: jr-kr-spin 1.6s linear infinite }
+@keyframes jr-kr-spin{ to { transform: rotate(360deg) } }
+.jh-rank .kr-robot .kr-arm-r{ transform-box: fill-box; transform-origin: 10% 10% }
+.jh-rank .kr-happy .kr-robot .kr-arm-r{ animation: jr-kr-wave .5s ease-in-out 4 }
+@keyframes jr-kr-wave{ 0%, 100% { transform: rotate(0) } 50% { transform: rotate(-38deg) } }
+.jh-rank .kr-sad .kr-robot{ animation: none; filter: grayscale(.35) }
+.jh-rank .kr-bubble{ position: relative; flex: 1; background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 10px 12px; font-size: 13.5px; line-height: 1.5; color: var(--t1); min-height: 44px }
+.jh-rank .kr-bubble:before{ content: ""; position: absolute; left: -8px; top: 18px; border: 8px solid transparent; border-right-color: var(--border); border-left: 0 }
+.jh-rank .kr-bubble:after{ content: ""; position: absolute; left: -6px; top: 19px; border: 7px solid transparent; border-right-color: var(--surface); border-left: 0 }
+.jh-rank .kr-bubble b{ color: var(--accent) }
+.jh-rank .kr-bubble small{ color: var(--t3); font-size: 12px }
+.jh-rank .kr-stats{ display: flex; gap: 10px; flex-wrap: wrap; padding: 2px 14px 6px; font-size: 12px; color: var(--t3) }
+.jh-rank .kr-stats b{ color: var(--t1) }
+.jh-rank .kr-progress{ margin: 0 14px 8px; height: 7px; border-radius: 99px; background: var(--surface3); overflow: hidden }
+.jh-rank .kr-progress i{ display: block; height: 100%; width: 0; border-radius: 99px; background: linear-gradient(90deg, var(--accent), #6b5cff, var(--accent)); background-size: 200% 100%; transition: width .4s ease; animation: jr-kr-shimmer 1.4s linear infinite }
+.jh-rank .kr-work .kr-progress i{ width: 35%; animation: jr-kr-shimmer 1.4s linear infinite, jr-kr-indet 1.6s ease-in-out infinite }
+@keyframes jr-kr-shimmer{ to { background-position: -200% 0 } }
+@keyframes jr-kr-indet{ 0% { margin-left: -35% } 100% { margin-left: 100% } }
+.jh-rank .kr-body{ padding: 0 14px 6px; max-height: 420px; overflow: auto }
+.jh-rank .kr-group{ margin: 8px 0 2px; font-size: 12px; font-weight: 700; color: var(--t2) }
+.jh-rank .kr-row{ display: flex; align-items: center; gap: 9px; padding: 9px 11px; border: 1px solid var(--border); border-radius: 12px; margin: 5px 0; cursor: pointer; animation: jr-kr-in .35s ease-out both; transition: border-color .15s, background .15s; background: var(--surface) }
+.jh-rank .kr-row:hover{ border-color: var(--accent) }
+.jh-rank .kr-row.kr-on{ border-color: var(--accent); background: var(--accent-l) }
+@keyframes jr-kr-in{ from { opacity: 0; transform: translateX(-8px) } to { opacity: 1; transform: none } }
+.jh-rank .kr-row input{ width: 17px; height: 17px; accent-color: var(--accent); flex: none; margin: 0; pointer-events: none }
+.jh-rank .kr-no{ flex: none; width: 18px; font-size: 11px; color: var(--t4); text-align: right }
+.jh-rank .kr-kw{ flex: 1; font-size: 13.5px; color: var(--t1); word-break: keep-all }
+.jh-rank .kr-badge{ flex: none; font-size: 11.5px; font-weight: 700; padding: 2px 8px; border-radius: 99px }
+.jh-rank .kr-b1{ background: var(--green-l); color: #0d8a4a }
+.jh-rank .kr-b2{ background: var(--accent-l); color: var(--accent-ink) }
+.jh-rank .kr-b3{ background: var(--yellow-l); color: #c76a00 }
+.jh-rank .kr-chip{ flex: none; font-size: 10.5px; color: var(--t3); border: 1px solid var(--border); border-radius: 6px; padding: 0 5px }
+.jh-rank .kr-empty{ text-align: center; color: var(--t3); font-size: 13px; padding: 18px 0 }
+.jh-rank .kr-foot{ display: flex; gap: 8px; padding: 10px 14px 12px; border-top: 1px solid var(--border) }
+.jh-rank .kr-foot button{ height: 42px; border-radius: 12px; font-weight: 700; font-size: 14px; cursor: pointer; border: 0; font-family: inherit }
+.jh-rank .kr-more{ flex: 1; background: var(--surface3); color: var(--t1) }
+.jh-rank .kr-apply{ flex: 2; background: var(--accent); color: #fff }
+.jh-rank .kr-foot button:disabled{ opacity: .45; cursor: default }
+.jh-rank .kr-done .kr-row{ cursor: default; pointer-events: none }
+.jh-rank .kr-done .kr-foot{ display: none }
+@media (prefers-reduced-motion: reduce){
+.jh-rank .kr-robot, .jh-rank .kr-robot *, .jh-rank .kr-row, .jh-rank .kr-progress i{ animation: none !important }
+}
+.jh-rank .msg-col:has(.kr-card){ width: min(560px, 82%) }
+.jh-rank .kr-card{ max-width: none }
+@media (max-width: 640px){
+.jh-rank .msg-col:has(.kr-card){ width: calc(100% - 44px); max-width: none }
+.jh-rank .kr-head{ gap: 8px; padding: 10px 10px 6px }
+.jh-rank .kr-robot{ width: 44px; height: 44px }
+.jh-rank .kr-bubble small{ display: none }
+.jh-rank .kr-bubble{ font-size: 13px; padding: 8px 10px }
+.jh-rank .kr-bubble:before{ top: 14px }
+.jh-rank .kr-bubble:after{ top: 15px }
+.jh-rank .kr-body{ max-height: none; padding: 0 10px 6px }
+.jh-rank .kr-stats{ padding: 2px 10px 6px }
+.jh-rank .kr-progress{ margin: 0 10px 8px }
+.jh-rank .kr-foot{ padding: 10px }
+.jh-rank .kr-row{ padding: 9px 9px; gap: 7px }
+.jh-rank .kr-no{ width: 14px }
+}
+.jh-rank .su-bar{ display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 14px 16px }
+.jh-rank .su-presets{ display: flex; gap: 4px; flex-wrap: wrap }
+.jh-rank .su-presets button{ border: 1px solid var(--border); background: var(--surface); padding: 6px 12px; border-radius: 99px; font-weight: 600; font-size: 13px; color: var(--t2) }
+.jh-rank .su-presets button.on{ background: var(--accent); border-color: var(--accent); color: #fff }
+.jh-rank .su-range{ display: flex; align-items: center; gap: 6px; color: var(--t3) }
+.jh-rank .su-range input{ padding: 6px 10px; height: 34px }
+.jh-rank .su-q{ margin-left: auto; width: 220px; height: 34px; padding: 6px 12px }
+.jh-rank .su-tabs b{ font-weight: 700; margin-left: 2px; color: inherit; opacity: .75 }
+.jh-rank .su-day{ padding: 16px 0 4px }
+.jh-rank .su-day .card-h{ padding: 0 20px; margin-bottom: 10px }
+.jh-rank .su-day .card-h .sub{ font-weight: 500; font-size: 13px }
+.jh-rank .su-wrap{ box-shadow: none; border-radius: 0; overflow-x: auto }
+.jh-rank .su-tbl{ width: 100%; min-width: 900px; table-layout: fixed }
+.jh-rank .su-tbl td{ vertical-align: middle; overflow-wrap: anywhere }
+.jh-rank .su-tbl th:nth-child(1){ width: 76px }
+.jh-rank .su-tbl th:nth-child(2){ width: 21% }
+.jh-rank .su-tbl th:nth-child(4){ width: 9% }
+.jh-rank .su-tbl th:nth-child(5){ width: 13% }
+.jh-rank .su-tbl th:nth-child(6){ width: 11% }
+.jh-rank .su-tbl th:nth-child(7){ width: 12% }
+.jh-rank .su-tbl th:nth-child(8){ width: 84px }
+.jh-rank .su-tbl tr.click:hover td{ background: var(--accent-l) }
+.jh-rank .su-time{ white-space: nowrap; font-weight: 700 }
+.jh-rank .su-st{ min-width: 120px }
+.jh-rank .su-sub{ max-width: 240px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
+.jh-rank .su-sheet{ white-space: nowrap }
+.jh-rank .su-go{ font-weight: 600; font-size: 13px }
+.jh-rank .su-go.muted{ color: var(--t3) }
+.jh-rank .su-go:hover{ text-decoration: underline }
+.jh-rank .su-dot{ display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: currentColor; margin-right: 4px; animation: jr-su-pulse 1.1s ease-in-out infinite }
+@keyframes jr-su-pulse{ 0%, 100% { opacity: 1 } 50% { opacity: .25 } }
+.jh-rank .su-live{ display: flex; align-items: center; gap: 4px; color: var(--accent-ink); margin: 4px 4px 16px }
+.jh-rank .su-detail{ min-width: min(640px, 82vw) }
+.jh-rank .su-state{ margin-bottom: 12px }
+.jh-rank .su-kv{ display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 8px 16px; background: var(--surface2); border-radius: var(--r-sm); padding: 12px 14px }
+.jh-rank .su-kv span{ display: block; font-size: 12px; color: var(--t3); font-weight: 600 }
+.jh-rank .su-kv b{ font-weight: 600; font-size: 13.5px }
+.jh-rank .su-h{ font-weight: 700; margin: 16px 0 8px }
+.jh-rank .su-rows td, .jh-rank .su-rows th{ padding: 8px 10px; font-size: 13px }
+.jh-rank .su-h .badge{ margin-left: 6px; vertical-align: 1px }
+.jh-rank .su-ok{ color: var(--green); font-weight: 700; font-size: 12px; white-space: nowrap }
+.jh-rank .su-sheetwrap{ box-shadow: none; border: 1px solid var(--border2); border-radius: 6px }
+.jh-rank .su-sheet-tbl{ border-collapse: collapse; width: 100%; font-size: 13px }
+.jh-rank .su-sheet-tbl th, .jh-rank .su-sheet-tbl td{ border: 1px solid var(--border); padding: 7px 10px; text-align: left; vertical-align: middle }
+.jh-rank .su-sheet-tbl thead th{ background: var(--surface3); color: var(--t2); font-weight: 700; font-size: 12px; text-align: center }
+.jh-rank .su-sheet-tbl .su-rn{ background: var(--surface3); color: var(--t3); font-weight: 600; font-size: 12px; text-align: center; width: 34px }
+.jh-rank .su-sheet-tbl td.su-m{ text-align: center; background: var(--surface) }
+.jh-rank .su-kwv{ display: inline-block; font-size: 11.5px; font-weight: 700; padding: 1px 7px; border-radius: 99px; margin-left: 4px; white-space: nowrap }
+.jh-rank .su-kwv.ok{ background: var(--green-l); color: var(--green) }
+.jh-rank .su-kwv.bad{ background: var(--red-l); color: var(--red) }
+.jh-rank .su-kwv.warn{ background: var(--yellow-l); color: #B7790C }
+.jh-rank .su-links{ margin-top: 16px; gap: 8px; flex-wrap: wrap }
+@media (max-width: 760px){
+.jh-rank .su-q{ margin-left: 0; width: 100% }
+.jh-rank .su-tbl th:nth-child(4), .jh-rank .su-tbl td:nth-child(4), .jh-rank .su-tbl th:nth-child(5), .jh-rank .su-tbl td:nth-child(5){ display: none }
+}
+.jh-rank{background:transparent;min-height:0;font-size:14px}
+.jh-rank-host{position:static}
+.jh-rank .chat-page{height:calc(100vh - 150px);max-width:none}

@@ -1,6 +1,7 @@
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
 import { serveStatic } from 'hono/cloudflare-workers'
+import rank from './rank'
 
 type Bindings = {
   jhadtool_production: D1Database
@@ -10,6 +11,9 @@ const app = new Hono<{ Bindings: Bindings }>()
 
 // CORS
 app.use('/api/*', cors())
+
+// 리워드 순위체크 (플레이스 · N 가격비교) — src/rank.ts
+app.route('/', rank)
 
 // ══════════════════════════════════════════
 // DB API — D1 CRUD

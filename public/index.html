@@ -1196,6 +1196,11 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<!-- 리워드 · 순위체크 -->
+<link rel="stylesheet" href="/static/rank/rank.css">
+<script type="module" src="/static/rank/jh-rank.js"></script>
+<script type="module" src="/static/rank/jh-chat.js"></script>
+<script type="module" src="/static/rank/jh-changes.js"></script>
 </head>
 <body>
 
@@ -1256,6 +1261,23 @@
       <div class="nav-section-label" style="margin-top:8px">영업</div>
       <div class="nav-item" data-page="quotes" id="nav-quotes">
         <span class="nav-icon"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 3h12a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/><path d="M7 7h6M7 10h6M7 13h4"/></svg></span><span>견적서</span>
+      </div>
+
+      <div class="nav-section-label" style="margin-top:8px">리워드</div>
+      <div class="nav-item" data-page="rank-setup" id="nav-rank-setup">
+        <span class="nav-icon"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="12" height="15" rx="2"/><path d="M7.5 3V2h5v1"/><path d="M7 9l2 2 4-4M7 14h6"/></svg></span><span>리워드 세팅</span>
+      </div>
+      <div class="nav-item" data-page="rank-changes" id="nav-rank-changes">
+        <span class="nav-icon"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="10" cy="10" r="7"/><path d="M7.5 7.5l5 5M12.5 7.5l-5 5"/></svg></span><span>취소 · 키워드변경</span>
+      </div>
+      <div class="nav-item" data-page="rank-place" id="nav-rank-place">
+        <span class="nav-icon"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M10 18s-5.5-5.2-5.5-9.2a5.5 5.5 0 0 1 11 0C15.5 12.8 10 18 10 18z"/><circle cx="10" cy="8.8" r="2"/></svg></span><span>플레이스 순위 체크</span>
+      </div>
+      <div class="nav-item" data-page="rank-shop" id="nav-rank-shop">
+        <span class="nav-icon"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 4h2l1.6 8.4a1 1 0 0 0 1 .8h7.2a1 1 0 0 0 1-.8L17 7H6"/><circle cx="8" cy="16.5" r="1.2"/><circle cx="15" cy="16.5" r="1.2"/></svg></span><span>N 가격비교 순위 체크</span>
+      </div>
+      <div class="nav-item" data-page="rank-chat" id="nav-rank-chat">
+        <span class="nav-icon"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="M4 4.5h12a1.5 1.5 0 0 1 1.5 1.5v7a1.5 1.5 0 0 1-1.5 1.5H9l-3.5 3v-3H4A1.5 1.5 0 0 1 2.5 13V6A1.5 1.5 0 0 1 4 4.5z"/><path d="M7 9.5h.01M10 9.5h.01M13 9.5h.01" stroke-width="2.2" stroke-linecap="round"/></svg></span><span>AI 비서 재흥이</span>
       </div>
 
       <div class="nav-section-label" style="margin-top:8px">결재</div>
@@ -1996,6 +2018,13 @@
         </div><!-- /z-index wrapper -->
       </div><!-- /quoteDocument -->
     </div><!-- /page-quote-edit -->
+
+    <!-- ══ 리워드 · 순위체크 (화면은 /static/rank/jh-rank.js 가 그림) ══ -->
+    <div class="page" id="page-rank-setup"><div class="jh-rank"><div class="jh-rank-root"></div></div></div>
+    <div class="page" id="page-rank-changes"></div>
+    <div class="page" id="page-rank-place"><div class="jh-rank"><div class="jh-rank-root"></div></div></div>
+    <div class="page" id="page-rank-shop"><div class="jh-rank"><div class="jh-rank-root"></div></div></div>
+    <div class="page" id="page-rank-chat"><div class="jh-rank"><div class="jh-rank-root"></div></div></div>
 
     <!-- ══ 파일함 ══ -->
     <div class="page" id="page-files">
@@ -3205,6 +3234,10 @@ function showPage(name){
     populateManagerSelect();
   }
   if(name==='dashboard')   { renderDashboard(); }
+  if(name==='rank-place' || name==='rank-shop') { if(window.jhRank) window.jhRank(name); }
+  if(name==='rank-chat') { if(window.jhChat) window.jhChat(); }
+  if(name==='rank-setup') { if(window.jhSetup) window.jhSetup(); }
+  if(name==='rank-changes') { if(window.jhChanges) window.jhChanges(); }
   if(name==='pending')     { renderPending(); renderIssueReady(); }
   if(name==='issue-ready') { renderIssueReady(); }
   if(name==='clients') {
