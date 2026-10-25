@@ -1259,6 +1259,12 @@
       </div>
 
       <div class="nav-section-label" style="margin-top:8px">영업</div>
+      <div class="nav-item" data-page="contracts" id="nav-contracts">
+        <span class="nav-icon"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="2" width="14" height="16" rx="2"/><path d="M7 6h6M7 9h6M7 12h4"/><circle cx="15" cy="15" r="3.5" fill="var(--surface)" stroke="currentColor"/><path d="M14 15h2M15 14v2"/></svg></span><span>계약 관리</span>
+      </div>
+      <div class="nav-item" data-page="products" id="nav-products">
+        <span class="nav-icon"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="2" y="3" width="16" height="14" rx="2"/><path d="M2 7h16M6 3v4M14 3v4M6 11h2M10 11h4M6 14h2M10 14h4"/></svg></span><span>상품 단가표</span>
+      </div>
       <div class="nav-item" data-page="quotes" id="nav-quotes">
         <span class="nav-icon"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 3h12a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/><path d="M7 7h6M7 10h6M7 13h4"/></svg></span><span>견적서</span>
       </div>
@@ -1669,6 +1675,230 @@
       </div>
     </div>
 
+    <!-- ══ 계약 관리 ══ -->
+    <div class="page" id="page-contracts">
+      <div class="page-header">
+        <div>
+          <div class="page-title">계약 관리</div>
+          <div class="page-sub">거래처별 상품·계약 기간·메모를 관리하세요</div>
+        </div>
+        <button class="btn btn-primary" onclick="openContractModal()">＋ 계약 등록</button>
+      </div>
+
+      <!-- 필터 -->
+      <div class="card" style="margin-bottom:16px;padding:12px 18px">
+        <div class="flex gap-2 items-center" style="flex-wrap:wrap">
+          <input type="text" id="contractSearch" placeholder="거래처명 / 상품명 검색..." oninput="renderContracts()" style="width:220px">
+          <select id="contractFilter" onchange="renderContracts()" style="width:130px">
+            <option value="all">전체</option>
+            <option value="active">진행중</option>
+            <option value="danger">종료 임박 (3일↓)</option>
+            <option value="expired">종료됨</option>
+          </select>
+          <select id="contractManagerFilter" onchange="renderContracts()" style="width:120px">
+            <option value="all">전체 담당자</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- 목록 -->
+      <div class="card" style="padding:0;overflow:hidden">
+        <table>
+          <thead>
+            <tr>
+              <th>거래처</th>
+              <th>상품명</th>
+              <th>단가</th>
+              <th>담당자</th>
+              <th>시작일</th>
+              <th>종료 예정일</th>
+              <th>D-day</th>
+              <th>메모</th>
+              <th style="width:90px">액션</th>
+            </tr>
+          </thead>
+          <tbody id="contractTbody"></tbody>
+        </table>
+        <div id="contractEmpty" style="display:none;text-align:center;padding:48px;color:var(--text3);font-size:14px">
+          등록된 계약이 없습니다. 계약을 등록해보세요.
+        </div>
+      </div>
+    </div>
+
+    <!-- Products (상품 단가표) -->
+    <div class="page" id="page-products">
+      <div class="page-header">
+        <div>
+          <div class="page-title">상품 단가표</div>
+          <div class="page-sub">판매 가능한 상품과 단가를 관리하세요</div>
+        </div>
+        <button class="btn btn-primary" onclick="openProductModal()">＋ 상품 등록</button>
+      </div>
+
+      <!-- 필터 -->
+      <div class="card" style="margin-bottom:16px;padding:12px 18px">
+        <div class="flex gap-2 items-center" style="flex-wrap:wrap">
+          <input type="text" id="productSearch" placeholder="상품명 / 카테고리 검색..." oninput="renderProducts()" style="width:230px">
+          <select id="productStatusFilter" onchange="renderProducts()" style="width:140px">
+            <option value="all">전체 상태</option>
+            <option value="active">판매 가능</option>
+            <option value="paused">임시 중단</option>
+            <option value="discontinued">판매 종료</option>
+          </select>
+          <select id="productCategoryFilter" onchange="renderProducts()" style="width:140px">
+            <option value="all">전체 카테고리</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- 목록 -->
+      <div class="card" style="padding:0;overflow:hidden">
+        <table>
+          <thead>
+            <tr>
+              <th>상품명</th>
+              <th style="text-align:right">단가</th>
+              <th>단위</th>
+              <th>상태</th>
+              <th>메모</th>
+              <th style="width:100px">액션</th>
+            </tr>
+          </thead>
+          <tbody id="productTbody"></tbody>
+        </table>
+        <div id="productEmpty" style="display:none;text-align:center;padding:48px;color:var(--text3);font-size:14px">
+          등록된 상품이 없습니다. 상품을 등록해보세요.
+        </div>
+      </div>
+    </div>
+
+    <!-- 상품 등록/수정 모달 -->
+    <div class="modal-overlay" id="productModal">
+      <div class="modal" style="max-width:480px">
+        <div class="modal-header">
+          <div class="modal-title" id="productModalTitle">상품 등록</div>
+          <button class="modal-close" data-close="productModal">×</button>
+        </div>
+        <div class="modal-body" style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+          <div class="form-group full">
+            <label>상품명 *</label>
+            <input type="text" id="pd-name" placeholder="예) 온라인 마케팅 패키지">
+          </div>
+          <div class="form-group full">
+            <label style="display:flex;align-items:center;justify-content:space-between">
+              <span>카테고리</span>
+              <button type="button" onclick="openCategoryManager()" style="font-size:11px;padding:2px 8px;border:1px solid var(--border);border-radius:6px;background:var(--surface2);color:var(--text2);cursor:pointer">⚙ 카테고리 관리</button>
+            </label>
+            <select id="pd-category">
+              <option value="">카테고리 없음</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>상태</label>
+            <select id="pd-status">
+              <option value="active">판매 가능</option>
+              <option value="paused">임시 중단</option>
+              <option value="discontinued">판매 종료</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>단가 (원)</label>
+            <input type="text" id="pd-price" inputmode="numeric" placeholder="0" oninput="this.value=this.value.replace(/[^0-9]/g,'')">
+          </div>
+          <div class="form-group full">
+            <label>단위</label>
+            <select id="pd-unit">
+              <option value="월">월</option>
+              <option value="건">건</option>
+              <option value="회">회</option>
+              <option value="개">개</option>
+            </select>
+          </div>
+          <div class="form-group full">
+            <label>메모</label>
+            <textarea id="pd-memo" rows="2" placeholder="상품 설명이나 조건을 입력하세요..." style="resize:vertical"></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-ghost" data-close="productModal">취소</button>
+          <button class="btn btn-primary" onclick="saveProduct()">저장</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 카테고리 관리 모달 -->
+    <div class="modal-overlay" id="categoryManagerModal">
+      <div class="modal" style="max-width:400px">
+        <div class="modal-header">
+          <div class="modal-title">카테고리 관리</div>
+          <button class="modal-close" data-close="categoryManagerModal">×</button>
+        </div>
+        <div class="modal-body">
+          <!-- 추가 입력 -->
+          <div style="display:flex;gap:8px;margin-bottom:16px">
+            <input type="text" id="newCategoryInp" placeholder="새 카테고리 이름..." style="flex:1" onkeydown="if(event.key==='Enter')addCategory()">
+            <button class="btn btn-primary" onclick="addCategory()" style="white-space:nowrap">추가</button>
+          </div>
+          <!-- 목록 -->
+          <div id="categoryList" style="display:flex;flex-direction:column;gap:6px;max-height:320px;overflow-y:auto"></div>
+          <div id="categoryEmpty" style="display:none;text-align:center;padding:32px;color:var(--text3);font-size:13px">카테고리가 없습니다. 추가해보세요.</div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-ghost" data-close="categoryManagerModal">닫기</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 계약 등록/수정 모달 -->
+    <div class="modal-overlay" id="contractModal">
+      <div class="modal" style="max-width:520px">
+        <div class="modal-header">
+          <div class="modal-title" id="contractModalTitle">계약 등록</div>
+          <button class="modal-close" data-close="contractModal">×</button>
+        </div>
+        <div class="modal-body" style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+          <div class="form-group full">
+            <label>거래처 *</label>
+            <div style="position:relative">
+              <input type="text" id="ct-client-search" placeholder="거래처명 검색..." oninput="filterContractClientDrop(this.value)" autocomplete="off" style="width:100%;padding-right:32px">
+              <ul id="ct-client-drop" style="display:none;position:absolute;top:100%;left:0;right:0;z-index:200;background:var(--surface);border:1px solid var(--border2);border-radius:8px;max-height:180px;overflow-y:auto;margin:2px 0;padding:0;list-style:none;box-shadow:0 4px 16px rgba(0,0,0,.12)"></ul>
+            </div>
+            <input type="hidden" id="ct-client-id">
+            <div id="ct-client-name" style="font-size:12px;color:var(--accent);margin-top:4px;min-height:16px"></div>
+          </div>
+          <!-- 상품 선택 (단가표 연동 + 수기 입력 병행) -->
+          <div class="form-group full">
+            <label style="display:flex;align-items:center;justify-content:space-between">
+              <span>상품명 *</span>
+              <span style="font-size:11px;color:var(--text3);font-weight:400">단가표에서 선택하거나 직접 입력</span>
+            </label>
+            <div style="position:relative">
+              <input type="text" id="ct-product" placeholder="상품 검색 또는 직접 입력..." oninput="filterContractProductDrop(this.value)" autocomplete="off" style="width:100%;padding-right:32px">
+              <span style="position:absolute;right:10px;top:50%;transform:translateY(-50%);color:var(--text3);pointer-events:none;font-size:12px">🔍</span>
+              <ul id="ct-product-drop" style="display:none;position:absolute;top:100%;left:0;right:0;z-index:200;background:var(--surface);border:1px solid var(--border2);border-radius:8px;max-height:200px;overflow-y:auto;margin:2px 0;padding:0;list-style:none;box-shadow:0 4px 16px rgba(0,0,0,.15)"></ul>
+            </div>
+            <div id="ct-product-info" style="font-size:12px;color:var(--text3);margin-top:4px;min-height:16px"></div>
+          </div>
+          <div class="form-group">
+            <label>시작일</label>
+            <input type="date" id="ct-start">
+          </div>
+          <div class="form-group">
+            <label>종료 예정일 *</label>
+            <input type="date" id="ct-end">
+          </div>
+          <div class="form-group full">
+            <label>메모</label>
+            <textarea id="ct-memo" rows="3" placeholder="자유롭게 메모를 입력하세요..." style="resize:vertical"></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-ghost" data-close="contractModal">취소</button>
+          <button class="btn btn-primary" onclick="saveContract()">저장</button>
+        </div>
+      </div>
+    </div>
+
     <!-- Transfers (이체 내역) -->
     <div class="page" id="page-transfers">
       <div class="page-header">
@@ -1920,7 +2150,15 @@
             </div>
             <!-- 거래처 선택 모드 -->
             <div id="qRcvClientMode">
-              <select id="quoteClientSel" onchange="applyQuoteClient()" style="width:100%;margin-bottom:12px;font-size:13px;border-radius:7px">
+              <!-- 거래처 검색 자동완성 -->
+              <div style="position:relative;margin-bottom:8px">
+                <input type="text" id="quoteClientSearchInp" autocomplete="off" placeholder="거래처명 검색..." style="width:100%;box-sizing:border-box;padding:8px 32px 8px 10px;border:1px solid var(--border);border-radius:7px;background:var(--surface2);color:var(--text1);font-size:13px;font-family:inherit" oninput="filterQuoteClientDrop(this.value)" onfocus="filterQuoteClientDrop(this.value)">
+                <span style="position:absolute;right:10px;top:50%;transform:translateY(-50%);color:var(--text3);pointer-events:none">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+                </span>
+                <ul id="quoteClientDrop" style="display:none;position:absolute;top:100%;left:0;right:0;z-index:9999;margin:2px 0 0;padding:0;list-style:none;background:var(--surface2);border:1px solid var(--border);border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.18);max-height:220px;overflow-y:auto;"></ul>
+              </div>
+              <select id="quoteClientSel" onchange="applyQuoteClient()" style="display:none;width:100%;margin-bottom:12px;font-size:13px;border-radius:7px">
                 <option value="">거래처 선택...</option>
               </select>
               <div id="qRcvOrg" style="font-size:16px;font-weight:800;color:var(--text);letter-spacing:-.02em;margin-bottom:10px">-</div>
@@ -3015,7 +3253,7 @@ var _allInvoicesCache = [];
 // DB에서 전체 데이터 불러오기 (Cloudflare D1)
 async function loadFromDB() {
   const safe = async (fn) => { try { return await fn(); } catch(e) { console.warn('DB 로드 실패:', e.message); return {data:null}; } };
-  const [inv, cli, trs, rcv, usr, cfg, out, fil] = await Promise.all([
+  const [inv, cli, trs, rcv, usr, cfg, out, fil, ctr, prd] = await Promise.all([
     safe(()=>dbGet('invoices')),
     safe(()=>dbGet('clients')),
     safe(()=>dbGet('transfers')),
@@ -3023,7 +3261,9 @@ async function loadFromDB() {
     safe(()=>dbGet('users')),
     safe(()=>dbGet('settings')),
     safe(()=>dbGet('outsources')),
-    safe(()=>dbGet('files'))
+    safe(()=>dbGet('files')),
+    safe(()=>dbGet('contracts')),
+    safe(()=>dbGet('products'))
   ]);
   if(inv.data && Array.isArray(inv.data)) {
     state.invoices    = inv.data.map(r=>JSON.parse(r.data));
@@ -3036,6 +3276,8 @@ async function loadFromDB() {
   if(out.data && Array.isArray(out.data)) state.outsources  = out.data.map(r=>JSON.parse(r.data));
   if(fil.data && Array.isArray(fil.data)) state.files       = fil.data.map(r=>JSON.parse(r.data));
   if(cfg.data && cfg.data.value) state.settings = JSON.parse(cfg.data.value);
+  if(ctr.data && Array.isArray(ctr.data)) state.contracts   = ctr.data.map(r=>JSON.parse(r.data));
+  if(prd.data && Array.isArray(prd.data)) state.products    = prd.data.map(r=>JSON.parse(r.data));
 }
 
 // 청구 저장
@@ -3119,7 +3361,7 @@ async function dbDeleteFile(id) {
 // 
 let state = {
   currentUser: null,
-  invoices: [], clients: [], receivables: [], transfers: [], outsources: [], files: [], quotes: [],
+  invoices: [], clients: [], receivables: [], transfers: [], outsources: [], files: [], quotes: [], contracts: [], products: [], productCategories: [],
   settings: { apiKey:'', customerKey:'', env:'test', sup:{bizno:'',org:'',rep:'',email:'',address:'',bizType:'',bizItem:''}, popbill:{linkId:'',secretKey:'',userId:'',env:'test'} },
   users: [
     {id:'admin',name:'관리자',pw:'1234',role:'admin'},
@@ -3142,10 +3384,13 @@ function loadState() {
     if(p.outsources) state.outsources = p.outsources;
     if(p.files)      state.files      = p.files;
     if(p.quotes)     state.quotes     = p.quotes;
+    if(p.contracts)         state.contracts         = p.contracts;
+    if(p.products)          state.products          = p.products;
+    if(p.productCategories) state.productCategories = p.productCategories;
   } catch(e) {}
 }
 function saveState() {
-  try { localStorage.setItem('taxinv_v3', JSON.stringify({invoices:state.invoices,clients:state.clients,receivables:state.receivables,transfers:state.transfers,settings:state.settings,users:state.users,outsources:state.outsources||[],files:state.files||[],quotes:state.quotes||[]})); } catch(e){}
+  try { localStorage.setItem('taxinv_v3', JSON.stringify({invoices:state.invoices,clients:state.clients,receivables:state.receivables,transfers:state.transfers,settings:state.settings,users:state.users,outsources:state.outsources||[],files:state.files||[],quotes:state.quotes||[],contracts:state.contracts||[],products:state.products||[],productCategories:state.productCategories||[]})); } catch(e){}
 }
 
 // ══════════════════════════════════════════
@@ -3266,6 +3511,8 @@ function showPage(name){
   if(name==='quotes')      { renderQuoteList(); populateQuoteClientSel(); }
   if(name==='settings')    { renderSettingsForm(); renderUsers(); }
   if(name==='analytics')     { renderAnalytics(); }
+  if(name==='contracts')    { renderContracts(); }
+  if(name==='products')     { renderProducts(); }
 }
 
 // 설정 폼 값 갱신 (설정 페이지 진입 시 최신 state 반영)
@@ -3546,7 +3793,7 @@ function renderAll(){
     if($('dashDateStr')) $('dashDateStr').textContent=ds;
   })();
   renderDashboard(); renderPending(); renderIssueReady(); renderHistory(); renderClients(); renderTransfers();
-  renderUsers(); renderReceivables(); renderOutsource(); populateClientSelect(); populateManagerSelect();
+  renderUsers(); renderReceivables(); renderOutsource(); populateClientSelect(); populateManagerSelect(); renderContracts(); renderProducts();
 }
 
 // ══════════════════════════════════════════
@@ -9096,6 +9343,8 @@ function initNewQuote() {
   switchRcvTab('client');
   populateQuoteClientSel();
   $('quoteClientSel').value = '';
+  if($('quoteClientSearchInp')) $('quoteClientSearchInp').value = '';
+  if($('quoteClientDrop')) $('quoteClientDrop').style.display='none';
   if($('qRcvOrg')) $('qRcvOrg').textContent = '-';
   $('qRcvBizno').textContent = '-';
   $('qRcvRep').textContent   = '-';
@@ -9148,6 +9397,10 @@ function loadQuoteForEdit(id) {
     switchRcvTab('client');
     populateQuoteClientSel();
     $('quoteClientSel').value = q.clientId || '';
+    // 검색 인풋에 거래처명 표시
+    var _qcl = (state.clients||[]).find(function(c){ return c.id===q.clientId; });
+    if($('quoteClientSearchInp')) $('quoteClientSearchInp').value = _qcl ? _qcl.org : '';
+    if($('quoteClientDrop')) $('quoteClientDrop').style.display='none';
     applyQuoteClient();
   }
 
@@ -9188,6 +9441,41 @@ function populateQuoteClientSel() {
         return '<option value="'+c.id+'">'+c.org+'</option>';
       }).join('');
 }
+
+// 견적서 거래처 검색 드롭다운
+function filterQuoteClientDrop(kw) {
+  var drop = $('quoteClientDrop');
+  if(!drop) return;
+  var q = (kw||'').trim().toLowerCase();
+  var clients = state.clients||[];
+  var hits = q
+    ? clients.filter(function(c){ return (c.org||'').toLowerCase().includes(q)||(c.bizno||'').includes(q); })
+    : clients.slice(0, 20);
+  if(!hits.length){
+    drop.innerHTML='<li style="padding:10px 14px;color:var(--text3);font-size:13px">'+(q?'검색 결과 없음':'등록된 거래처 없음')+'</li>';
+    drop.style.display='block'; return;
+  }
+  drop.innerHTML = hits.map(function(c){
+    return '<li style="padding:9px 14px;font-size:13px;cursor:pointer;border-bottom:1px solid var(--border)" '
+      +'onmousedown="selectQuoteClient(\''+c.id+'\',\''+c.org.replace(/\\/g,'\\\\').replace(/'/g,"\\'")+'\')">'
+      +'<strong>'+c.org+'</strong>'+(c.bizno?'<span style="color:var(--text3);font-size:11px;margin-left:6px">'+c.bizno+'</span>':'')
+      +'</li>';
+  }).join('');
+  drop.style.display='block';
+}
+function selectQuoteClient(id, name) {
+  var inp = $('quoteClientSearchInp');
+  var drop = $('quoteClientDrop');
+  var sel  = $('quoteClientSel');
+  if(inp)  inp.value = name;
+  if(drop) drop.style.display='none';
+  if(sel)  sel.value = id;
+  applyQuoteClient();
+}
+window.selectQuoteClient = selectQuoteClient;
+window.filterQuoteClientDrop = filterQuoteClientDrop;
+
+// 견적서 거래처 검색창 외부 클릭 시 드롭다운 닫기 처리 (DOMContentLoaded에서 등록)
 
 function applyQuoteClient() {
   var id = $('quoteClientSel').value;
@@ -9535,6 +9823,552 @@ window.trClearDate             = trClearDate;
 window.openBankAccountMgtURL   = openBankAccountMgtURL;
 window.deleteQuote        = deleteQuote;
 window.printQuotePDF      = printQuotePDF;
+window.openContractModal  = openContractModal;
+window.saveContract       = saveContract;
+window.editContract       = editContract;
+window.deleteContract     = deleteContract;
+window.renderContracts    = renderContracts;
+window.filterContractClientDrop = filterContractClientDrop;
+
+// ══════════════════════════════════════════
+// 상품 단가표
+// ══════════════════════════════════════════
+if(!state.products)          state.products          = [];
+if(!state.productCategories) state.productCategories = [];
+
+// ── DB 저장/삭제 ──────────────────────────
+async function dbSaveProduct(pd){
+  await dbUpsert('products', {id:pd.id, data:pd, updated_at:new Date().toISOString()});
+}
+async function dbDeleteProduct(id){
+  await dbDelete('products', id);
+}
+
+// ── 상태 배지 ──────────────────────────────
+function productStatusBadge(s){
+  if(s==='active')       return '<span style="background:rgba(0,196,113,.15);color:var(--green);padding:2px 10px;border-radius:20px;font-size:12px;font-weight:600">판매 가능</span>';
+  if(s==='paused')       return '<span style="background:rgba(249,115,22,.12);color:#f97316;padding:2px 10px;border-radius:20px;font-size:12px;font-weight:600">임시 중단</span>';
+  if(s==='discontinued') return '<span style="background:rgba(240,68,82,.1);color:var(--red);padding:2px 10px;border-radius:20px;font-size:12px;font-weight:600">판매 종료</span>';
+  return '<span style="background:var(--border);color:var(--text3);padding:2px 10px;border-radius:20px;font-size:12px">-</span>';
+}
+
+// ── 카테고리 select 옵션 채우기 ─────────────
+function fillCategorySelect(selId, selectedVal){
+  var sel = $(selId); if(!sel) return;
+  var cats = state.productCategories||[];
+  sel.innerHTML = '<option value="">카테고리 없음</option>'
+    + cats.map(function(c){ return '<option value="'+c+'">'+c+'</option>'; }).join('');
+  if(selectedVal) sel.value = selectedVal;
+}
+
+// ── 카테고리 관리 모달 ───────────────────────
+function openCategoryManager(){
+  renderCategoryList();
+  openModal('categoryManagerModal');
+}
+function renderCategoryList(){
+  var list = state.productCategories||[];
+  var el = $('categoryList'), empty = $('categoryEmpty');
+  if(!el) return;
+  if(!list.length){ el.innerHTML=''; if(empty) empty.style.display='block'; return; }
+  if(empty) empty.style.display='none';
+  el.innerHTML = list.map(function(c, i){
+    var cnt = (state.products||[]).filter(function(p){return p.category===c;}).length;
+    return '<div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--surface2);border-radius:8px">'
+      +'<span style="flex:1;font-size:13px;font-weight:500">'+c+'</span>'
+      +(cnt?'<span style="font-size:11px;color:var(--text3);background:var(--border);padding:2px 7px;border-radius:10px">'+cnt+'개 상품</span>':'')
+      +'<button onclick="moveCategoryUp('+i+')" style="background:none;border:none;cursor:pointer;color:var(--text3);font-size:14px;padding:2px 4px" title="위로">▲</button>'
+      +'<button onclick="moveCategoryDown('+i+')" style="background:none;border:none;cursor:pointer;color:var(--text3);font-size:14px;padding:2px 4px" title="아래로">▼</button>'
+      +'<button onclick="deleteCategory(\''+c.replace(/'/g,"\\'")+'\')" style="background:none;border:none;cursor:pointer;color:var(--red);font-size:16px;padding:2px 4px;line-height:1" title="삭제">×</button>'
+      +'</div>';
+  }).join('');
+}
+function addCategory(){
+  var inp = $('newCategoryInp'); if(!inp) return;
+  var name = inp.value.trim();
+  if(!name){ toast('카테고리 이름을 입력해주세요','error'); return; }
+  if(!state.productCategories) state.productCategories=[];
+  if(state.productCategories.includes(name)){ toast('이미 존재하는 카테고리입니다','error'); return; }
+  state.productCategories.push(name);
+  saveState();
+  inp.value='';
+  renderCategoryList();
+  // 상품 모달 select도 갱신
+  fillCategorySelect('pd-category', $('pd-category')?$('pd-category').value:'');
+  // 필터 select도 갱신
+  var curCatF = ($('productCategoryFilter')||{}).value||'all';
+  var catSel = $('productCategoryFilter');
+  if(catSel){
+    catSel.innerHTML='<option value="all">전체 카테고리</option>'+(state.productCategories||[]).map(function(c){return '<option value="'+c+'">'+c+'</option>';}).join('');
+    catSel.value=curCatF;
+  }
+  toast('카테고리가 추가되었습니다','success');
+}
+function deleteCategory(name){
+  var cnt = (state.products||[]).filter(function(p){return p.category===name;}).length;
+  if(cnt && !confirm(cnt+'개 상품에 연결된 카테고리입니다. 삭제하면 해당 상품의 카테고리가 제거됩니다. 계속하시겠습니까?')) return;
+  state.productCategories=(state.productCategories||[]).filter(function(c){return c!==name;});
+  // 연결된 상품 카테고리 제거
+  (state.products||[]).forEach(function(p){ if(p.category===name) p.category=''; });
+  saveState();
+  renderCategoryList();
+  fillCategorySelect('pd-category', '');
+  var catSel=$('productCategoryFilter');
+  if(catSel){
+    var curCatF=catSel.value;
+    catSel.innerHTML='<option value="all">전체 카테고리</option>'+(state.productCategories||[]).map(function(c){return '<option value="'+c+'">'+c+'</option>';}).join('');
+    if((state.productCategories||[]).includes(curCatF)) catSel.value=curCatF;
+  }
+  if(cnt) renderProducts();
+  toast('카테고리가 삭제되었습니다','info');
+}
+function moveCategoryUp(i){
+  var cats=state.productCategories||[]; if(i<=0) return;
+  var tmp=cats[i-1]; cats[i-1]=cats[i]; cats[i]=tmp;
+  saveState(); renderCategoryList();
+}
+function moveCategoryDown(i){
+  var cats=state.productCategories||[]; if(i>=cats.length-1) return;
+  var tmp=cats[i+1]; cats[i+1]=cats[i]; cats[i]=tmp;
+  saveState(); renderCategoryList();
+}
+
+// ── 상품 목록 렌더링 (카테고리 그룹핑) ────────
+function renderProducts(){
+  var kw   = (($('productSearch')||{}).value||'').trim().toLowerCase();
+  var stF  = ($('productStatusFilter')||{}).value||'all';
+  var catF = ($('productCategoryFilter')||{}).value||'all';
+
+  // 카테고리 필터 옵션 갱신
+  var catSel = $('productCategoryFilter');
+  if(catSel){
+    var curCat = catSel.value;
+    catSel.innerHTML = '<option value="all">전체 카테고리</option>'
+      + (state.productCategories||[]).map(function(c){ return '<option value="'+c+'">'+c+'</option>'; }).join('');
+    if(curCat) catSel.value = curCat;
+  }
+
+  var list = (state.products||[]).filter(function(p){
+    if(stF !== 'all' && p.status !== stF) return false;
+    if(catF !== 'all' && p.category !== catF) return false;
+    if(kw){
+      var h = ((p.name||'')+(p.category||'')+(p.memo||'')).toLowerCase();
+      if(!h.includes(kw)) return false;
+    }
+    return true;
+  });
+
+  var tbody = $('productTbody'), empty = $('productEmpty');
+  if(!tbody) return;
+  if(!list.length){ tbody.innerHTML=''; if(empty) empty.style.display='block'; return; }
+  if(empty) empty.style.display='none';
+
+  var isAdmin = state.currentUser && state.currentUser.role==='admin';
+  var statusOrder = {active:0, paused:1, discontinued:2};
+
+  // 카테고리 순서 = state.productCategories 순 → 미분류는 맨 마지막
+  var cats = (state.productCategories||[]).filter(function(c){
+    return list.some(function(p){ return p.category===c; });
+  });
+  var uncategorized = list.filter(function(p){ return !p.category; });
+  if(uncategorized.length) cats = cats.concat(['']);
+
+  var rows = '';
+  cats.forEach(function(cat){
+    var group = list.filter(function(p){ return (p.category||'')===cat; })
+      .sort(function(a,b){
+        var oa=statusOrder[a.status||'active']||0, ob=statusOrder[b.status||'active']||0;
+        if(oa!==ob) return oa-ob;
+        return (a.name||'').localeCompare(b.name||'','ko');
+      });
+    if(!group.length) return;
+
+    // 카테고리 구분 헤더 행
+    rows += '<tr>'
+      +'<td colspan="6" style="background:var(--surface2);padding:6px 14px;font-size:12px;font-weight:700;color:var(--text2);letter-spacing:.5px;border-bottom:1px solid var(--border)">'
+      +(cat||'미분류')+'<span style="margin-left:8px;font-weight:400;color:var(--text3)">'+group.length+'개</span>'
+      +'</td></tr>';
+
+    group.forEach(function(p){
+      var rowSt = p.status==='discontinued' ? 'opacity:.5;' : p.status==='paused' ? 'opacity:.8;' : '';
+      var price = p.price ? Number(p.price).toLocaleString('ko-KR')+'원' : '-';
+      var memo = p.memo
+        ? '<span style="font-size:12px;color:var(--text3);max-width:180px;display:inline-block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+p.memo.replace(/"/g,'&quot;')+'">'+p.memo+'</span>'
+        : '<span style="color:var(--text3)">-</span>';
+      var editBtn = isAdmin ? '<button class="btn btn-ghost btn-sm" type="button" onclick="openProductModal(\''+p.id+'\')">수정</button>' : '';
+      var delBtn  = isAdmin ? '<button class="btn btn-danger btn-sm" type="button" onclick="deleteProduct(\''+p.id+'\')">삭제</button>' : '';
+      rows += '<tr style="'+rowSt+'">'
+        +'<td style="padding-left:22px"><strong>'+(p.name||'-')+'</strong></td>'
+        +'<td style="text-align:right;font-weight:700;font-size:14px;color:var(--accent)">'+price+'</td>'
+        +'<td style="color:var(--text3)">'+(p.unit||'-')+'</td>'
+        +'<td>'+productStatusBadge(p.status||'active')+'</td>'
+        +'<td>'+memo+'</td>'
+        +'<td><div class="flex gap-2">'+editBtn+delBtn+'</div></td>'
+        +'</tr>';
+    });
+  });
+  tbody.innerHTML = rows;
+}
+
+// ── 상품 모달 열기 ─────────────────────────
+function openProductModal(id){
+  var pd = id ? (state.products||[]).find(function(p){return p.id===id;}) : null;
+  $('productModalTitle').textContent = pd ? '상품 수정' : '상품 등록';
+  $('pd-name').value   = pd ? (pd.name||'')  : '';
+  $('pd-status').value = pd ? (pd.status||'active') : 'active';
+  // price: 0이면 빈 문자열로 표시
+  $('pd-price').value  = pd ? (pd.price ? String(pd.price) : '') : '';
+  $('pd-memo').value   = pd ? (pd.memo||'')  : '';
+  fillCategorySelect('pd-category', pd ? (pd.category||'') : '');
+  var unitSel = $('pd-unit');
+  if(unitSel) unitSel.value = pd ? (pd.unit||'월') : '월';
+  // setAttribute로 안정적으로 editId 세팅
+  $('productModal').setAttribute('data-edit-id', id||'');
+  openModal('productModal');
+}
+
+// ── 저장 ──────────────────────────────────
+async function saveProduct(){
+  var name = $('pd-name').value.trim();
+  if(!name){ toast('상품명을 입력해주세요','error'); return; }
+  // getAttribute로 안정적으로 editId 읽기
+  var editId = $('productModal').getAttribute('data-edit-id')||'';
+  if(!state.products) state.products=[];
+  var pd = editId ? state.products.find(function(p){return p.id===editId;}) : null;
+  if(!pd){ pd={id:'pd_'+Date.now()+'_'+Math.random().toString(36).slice(2,6)}; state.products.push(pd); }
+  pd.name     = name;
+  pd.category = $('pd-category').value||'';
+  pd.status   = $('pd-status').value;
+  pd.price    = Number($('pd-price').value)||0;
+  pd.unit     = $('pd-unit').value||'월';
+  pd.memo     = $('pd-memo').value.trim();
+  pd.updatedAt= new Date().toISOString();
+  saveState();
+  await dbSaveProduct(pd);
+  closeModal('productModal');
+  renderProducts();
+  toast(editId?'상품이 수정되었습니다':'상품이 등록되었습니다','success');
+}
+
+// ── 삭제 ──────────────────────────────────
+async function deleteProduct(id){
+  if(!confirm('이 상품을 삭제하시겠습니까?')) return;
+  state.products=(state.products||[]).filter(function(p){return p.id!==id;});
+  saveState(); await dbDeleteProduct(id); renderProducts(); toast('삭제되었습니다','info');
+}
+
+// ── 계약 모달 상품 드롭다운 ─────────────────
+function filterContractProductDrop(kw){
+  var drop = $('ct-product-drop'); if(!drop) return;
+  var q = (kw||'').trim().toLowerCase();
+  var info = $('ct-product-info');
+  if(info) info.textContent = '';
+
+  var avail = (state.products||[]).filter(function(p){ return p.status==='active'; });
+  var hits = q
+    ? (state.products||[]).filter(function(p){
+        return (p.name||'').toLowerCase().includes(q)||(p.category||'').toLowerCase().includes(q);
+      })
+    : avail;
+
+  if(!hits.length){
+    if(q){
+      drop.innerHTML='<li style="padding:10px 14px;color:var(--text3);font-size:13px">등록된 상품 없음 — 직접 입력도 가능합니다</li>';
+      drop.style.display='block';
+    } else {
+      drop.style.display='none';
+    }
+    return;
+  }
+
+  // 카테고리별 그룹핑
+  var cats = (state.productCategories||[]).filter(function(c){
+    return hits.some(function(p){return (p.category||'')===c;});
+  });
+  var hasUncategorized = hits.some(function(p){return !p.category;});
+  if(hasUncategorized) cats = cats.concat(['']);
+
+  var html = '';
+  cats.forEach(function(cat){
+    var group = hits.filter(function(p){return (p.category||'')===cat;});
+    if(!group.length) return;
+    if(cats.length > 1){
+      html += '<li style="padding:5px 14px;font-size:11px;font-weight:700;color:var(--text3);background:var(--surface2);letter-spacing:.5px">'+(cat||'미분류')+'</li>';
+    }
+    group.forEach(function(p){
+      var badge = p.status==='paused'
+        ? '<span style="font-size:10px;background:rgba(249,115,22,.12);color:#f97316;padding:1px 6px;border-radius:10px;margin-left:4px">임시중단</span>'
+        : p.status==='discontinued'
+        ? '<span style="font-size:10px;background:rgba(240,68,82,.1);color:var(--red);padding:1px 6px;border-radius:10px;margin-left:4px">종료</span>'
+        : '';
+      var priceStr = p.price ? '<span style="color:var(--accent);font-weight:700">'+Number(p.price).toLocaleString('ko-KR')+'원/'+( p.unit||'월')+'</span>' : '';
+      html += '<li style="padding:9px 14px;font-size:13px;cursor:pointer;border-bottom:1px solid var(--border)'+(p.status!=='active'?';opacity:.6':'')+'" '
+        +'onmousedown="selectContractProduct(\''+p.id+'\')">'
+        +'<div style="display:flex;align-items:center;justify-content:space-between">'
+        +'<span><strong>'+p.name+'</strong>'+badge+'</span>'
+        +(priceStr?'<span>'+priceStr+'</span>':'')
+        +'</div>'
+        +'</li>';
+    });
+  });
+  drop.innerHTML = html;
+  drop.style.display='block';
+}
+
+function selectContractProduct(id){
+  var pd = (state.products||[]).find(function(p){return p.id===id;});
+  if(!pd) return;
+  var inp = $('ct-product'); if(inp) inp.value = pd.name;
+  var drop = $('ct-product-drop'); if(drop) drop.style.display='none';
+  var info = $('ct-product-info');
+  if(info){
+    var parts = [];
+    if(pd.price) parts.push(Number(pd.price).toLocaleString('ko-KR')+'원/'+( pd.unit||'월'));
+    if(pd.category) parts.push(pd.category);
+    if(pd.memo) parts.push(pd.memo);
+    info.innerHTML = parts.length
+      ? '<span style="color:var(--accent)">'+parts.join(' · ')+'</span>'
+      : '';
+  }
+}
+window.selectContractProduct    = selectContractProduct;
+window.filterContractProductDrop= filterContractProductDrop;
+window.openProductModal         = openProductModal;
+window.saveProduct              = saveProduct;
+window.deleteProduct            = deleteProduct;
+window.renderProducts           = renderProducts;
+window.openCategoryManager      = openCategoryManager;
+window.addCategory              = addCategory;
+window.deleteCategory           = deleteCategory;
+window.moveCategoryUp           = moveCategoryUp;
+window.moveCategoryDown         = moveCategoryDown;
+
+// ══════════════════════════════════════════
+// 계약 관리
+// ══════════════════════════════════════════
+
+// state에 contracts 배열 없으면 초기화
+if(!state.contracts) state.contracts = [];
+
+// DB 저장
+async function dbSaveContract(ct){
+  await dbUpsert('contracts', {id:ct.id, data:ct, updated_at:new Date().toISOString()});
+}
+async function dbDeleteContract(id){
+  await dbDelete('contracts', id);
+}
+async function dbLoadContracts(){
+  var r = await dbGet('contracts');
+  if(r.data && Array.isArray(r.data)){
+    state.contracts = r.data.map(function(row){ return JSON.parse(row.data); });
+  }
+}
+
+// D-day 계산 (양수=남은 일, 0=당일, 음수=지남)
+function contractDday(endDate){
+  if(!endDate) return null;
+  var today = new Date(); today.setHours(0,0,0,0);
+  var end   = new Date(endDate); end.setHours(0,0,0,0);
+  return Math.round((end - today) / 86400000);
+}
+
+// 색상 결정
+function contractRowStyle(dday){
+  if(dday === null) return '';
+  if(dday <= 1)  return 'background:rgba(240,68,82,.10);';   // 빨강 (1일전~당일~다음날)
+  if(dday <= 3)  return 'background:rgba(249,115,22,.10);';  // 주황 (3일전)
+  return '';
+}
+function contractDdayBadge(dday){
+  if(dday === null) return '<span style="color:var(--text3)">-</span>';
+  if(dday < 0)  return '<span style="background:rgba(240,68,82,.15);color:var(--red);padding:2px 8px;border-radius:20px;font-size:12px;font-weight:700">D+'+Math.abs(dday)+'</span>';
+  if(dday === 0) return '<span style="background:rgba(240,68,82,.2);color:var(--red);padding:2px 8px;border-radius:20px;font-size:12px;font-weight:700">D-day</span>';
+  if(dday <= 1)  return '<span style="background:rgba(240,68,82,.2);color:var(--red);padding:2px 8px;border-radius:20px;font-size:12px;font-weight:700">D-'+dday+'</span>';
+  if(dday <= 3)  return '<span style="background:rgba(249,115,22,.15);color:#f97316;padding:2px 8px;border-radius:20px;font-size:12px;font-weight:700">D-'+dday+'</span>';
+  return '<span style="color:var(--text3);font-size:13px">D-'+dday+'</span>';
+}
+
+// 렌더링
+function renderContracts(){
+  var kw   = (($('contractSearch')||{}).value||'').trim().toLowerCase();
+  var flt  = ($('contractFilter')||{}).value||'all';
+  var mgrF = ($('contractManagerFilter')||{}).value||'all';
+
+  // 담당자 필터 옵션 채우기
+  var mgrSel = $('contractManagerFilter');
+  if(mgrSel){
+    var mgrs = [...new Set(state.contracts.map(function(c){return c.managerId||'';}).filter(Boolean))];
+    var curMgr = mgrSel.value;
+    mgrSel.innerHTML = '<option value="all">전체 담당자</option>'
+      + mgrs.map(function(id){
+          var u = state.users.find(function(u){ return u.id===id; });
+          return '<option value="'+id+'">'+(u?u.name:id)+'</option>';
+        }).join('');
+    if(curMgr) mgrSel.value = curMgr;
+  }
+
+  var isAdmin = state.currentUser && state.currentUser.role==='admin';
+  var myId    = state.currentUser ? state.currentUser.id : '';
+
+  var list = state.contracts.filter(function(ct){
+    // 담당자 필터: 어드민은 전체, 일반 담당자는 본인 것만
+    if(!isAdmin && ct.managerId !== myId) return false;
+    if(mgrF !== 'all' && ct.managerId !== mgrF) return false;
+    // 키워드
+    if(kw){
+      var haystack = ((ct.clientName||'')+(ct.product||'')+(ct.memo||'')).toLowerCase();
+      if(!haystack.includes(kw)) return false;
+    }
+    // 상태 필터
+    var dd = contractDday(ct.endDate);
+    if(flt==='active'  && (dd===null||dd<0)) return false;
+    if(flt==='danger'  && (dd===null||dd>3||dd<0)) return false;
+    if(flt==='expired' && (dd===null||dd>=0)) return false;
+    return true;
+  }).sort(function(a,b){
+    var da = contractDday(a.endDate), db2 = contractDday(b.endDate);
+    if(da===null && db2===null) return 0;
+    if(da===null) return 1;
+    if(db2===null) return -1;
+    return da - db2;
+  });
+
+  var tbody = $('contractTbody');
+  var empty = $('contractEmpty');
+  if(!tbody) return;
+
+  if(!list.length){
+    tbody.innerHTML=''; if(empty) empty.style.display='block'; return;
+  }
+  if(empty) empty.style.display='none';
+
+  tbody.innerHTML = list.map(function(ct){
+    var dd = contractDday(ct.endDate);
+    var rowSt = contractRowStyle(dd);
+    var badge = contractDdayBadge(dd);
+    var mgrU  = state.users.find(function(u){ return u.id===ct.managerId; });
+    var mgrName = mgrU ? mgrU.name : (ct.managerId||'-');
+    var memo = ct.memo ? ('<span style="font-size:12px;color:var(--text3);max-width:140px;display:inline-block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+ct.memo.replace(/"/g,'&quot;')+'">'+ct.memo+'</span>') : '<span style="color:var(--text3)">-</span>';
+    // 단가 표시 (단가표 연동)
+    var pd = ct.productId ? (state.products||[]).find(function(p){return p.id===ct.productId;}) : null;
+    var priceStr = pd && pd.price
+      ? '<span style="color:var(--accent);font-weight:600">'+Number(pd.price).toLocaleString('ko-KR')+'원</span><span style="color:var(--text3);font-size:11px">/'+( pd.unit||'월')+'</span>'
+      : '<span style="color:var(--text3)">-</span>';
+    return '<tr style="'+rowSt+'">'
+      +'<td><strong>'+(ct.clientName||'-')+'</strong></td>'
+      +'<td>'+(ct.product||'-')+'</td>'
+      +'<td style="white-space:nowrap">'+priceStr+'</td>'
+      +'<td style="color:var(--text3)">'+(isAdmin?mgrName:(ct.managerId===myId?'나':''))+'</td>'
+      +'<td style="color:var(--text3)">'+(ct.startDate||'-')+'</td>'
+      +'<td style="font-weight:600">'+(ct.endDate||'-')+'</td>'
+      +'<td>'+badge+'</td>'
+      +'<td>'+memo+'</td>'
+      +'<td><div class="flex gap-2">'
+        +'<button class="btn btn-ghost btn-sm" onclick="editContract(\''+ct.id+'\')">수정</button>'
+        +'<button class="btn btn-danger btn-sm" onclick="deleteContract(\''+ct.id+'\')">삭제</button>'
+      +'</div></td>'
+      +'</tr>';
+  }).join('');
+}
+
+// 모달 열기 (신규)
+function openContractModal(id){
+  var ct = id ? state.contracts.find(function(c){return c.id===id;}) : null;
+  $('contractModalTitle').textContent = ct ? '계약 수정' : '계약 등록';
+  $('ct-client-search').value  = ct ? (ct.clientName||'') : '';
+  $('ct-client-id').value      = ct ? (ct.clientId||'') : '';
+  $('ct-client-name').textContent = ct ? (ct.clientName||'') : '';
+  $('ct-product').value  = ct ? (ct.product||'') : '';
+  $('ct-start').value    = ct ? (ct.startDate||'') : '';
+  $('ct-end').value      = ct ? (ct.endDate||'') : '';
+  $('ct-memo').value     = ct ? (ct.memo||'') : '';
+  $('contractModal').dataset.editId = id||'';
+  $('ct-client-drop').style.display='none';
+  if($('ct-product-drop')) $('ct-product-drop').style.display='none';
+  // 수정 시 상품 정보 표시
+  var info = $('ct-product-info');
+  if(info){
+    if(ct && ct.productId){
+      var pd = (state.products||[]).find(function(p){return p.id===ct.productId;});
+      if(pd && pd.price){
+        info.innerHTML='<span style="color:var(--accent)">'+Number(pd.price).toLocaleString('ko-KR')+'원/'+( pd.unit||'월')+(pd.category?' · '+pd.category:'')+'</span>';
+      } else { info.textContent=''; }
+    } else { info.textContent=''; }
+  }
+  openModal('contractModal');
+}
+function editContract(id){ openContractModal(id); }
+
+// 거래처 검색 드롭다운 (모달 내)
+function filterContractClientDrop(kw){
+  var drop = $('ct-client-drop');
+  if(!drop) return;
+  var q = (kw||'').trim().toLowerCase();
+  if(!q){ drop.style.display='none'; drop.innerHTML=''; return; }
+  var hits = state.clients.filter(function(c){
+    return (c.org||'').toLowerCase().includes(q)||(c.bizno||'').includes(q);
+  }).slice(0,10);
+  if(!hits.length){ drop.innerHTML='<li style="padding:10px 14px;color:var(--text3);font-size:13px">검색 결과 없음</li>'; drop.style.display='block'; return; }
+  drop.innerHTML = hits.map(function(c){
+    return '<li style="padding:9px 14px;font-size:13px;cursor:pointer;border-bottom:1px solid var(--border)" '
+      +'onmousedown="selectContractClient(\''+c.id+'\',\''+c.org.replace(/'/g,"\\'")+'\')">'
+      +'<strong>'+c.org+'</strong>'+(c.bizno?'<span style="color:var(--text3);font-size:11px;margin-left:6px">'+c.bizno+'</span>':'')
+      +'</li>';
+  }).join('');
+  drop.style.display='block';
+}
+function selectContractClient(id, name){
+  $('ct-client-id').value = id;
+  $('ct-client-search').value = name;
+  $('ct-client-name').textContent = name;
+  $('ct-client-drop').style.display='none';
+}
+window.selectContractClient = selectContractClient;
+
+// 저장
+async function saveContract(){
+  var clientId   = $('ct-client-id').value.trim();
+  var clientName = $('ct-client-search').value.trim();
+  var product    = $('ct-product').value.trim();
+  var endDate    = $('ct-end').value;
+  if(!clientName){ toast('거래처를 선택하거나 입력해주세요','error'); return; }
+  if(!product){    toast('상품명을 입력해주세요','error'); return; }
+  if(!endDate){    toast('종료 예정일을 입력해주세요','error'); return; }
+
+  var editId = $('contractModal').dataset.editId||'';
+  var ct = editId ? state.contracts.find(function(c){return c.id===editId;}) : null;
+  if(!ct){
+    ct = { id: 'ct_'+Date.now()+'_'+Math.random().toString(36).slice(2,7) };
+    state.contracts.push(ct);
+  }
+  ct.clientId   = clientId;
+  ct.clientName = clientName;
+  ct.product    = product;
+  // 단가표에서 선택한 상품이면 productId 저장
+  var matchedPd = (state.products||[]).find(function(p){ return p.name===product; });
+  ct.productId  = matchedPd ? matchedPd.id : '';
+  ct.startDate  = $('ct-start').value||'';
+  ct.endDate    = endDate;
+  ct.memo       = $('ct-memo').value.trim();
+  ct.managerId  = state.currentUser ? state.currentUser.id : '';
+  ct.updatedAt  = new Date().toISOString();
+
+  saveState();
+  await dbSaveContract(ct);
+  closeModal('contractModal');
+  renderContracts();
+  toast(editId?'계약이 수정되었습니다':'계약이 등록되었습니다','success');
+}
+
+// 삭제
+async function deleteContract(id){
+  if(!confirm('이 계약을 삭제하시겠습니까?')) return;
+  state.contracts = state.contracts.filter(function(c){return c.id!==id;});
+  saveState();
+  await dbDeleteContract(id);
+  renderContracts();
+  toast('삭제되었습니다','info');
+}
 
 // ══ 로고 설정 (AI 파일 첨부 시 URL 교체) ══
 function setLogo(url) {
@@ -9780,6 +10614,33 @@ document.addEventListener('DOMContentLoaded', function() {
     if(inp && inp.contains(e.target)) return;
     if(drop && drop.contains(e.target)) return;
     _clientAcDropClose();
+  });
+  // 견적서 거래처 검색 드롭다운: 외부 클릭 시 닫기
+  document.addEventListener('click', function(e){
+    var drop = $('quoteClientDrop');
+    var inp  = $('quoteClientSearchInp');
+    if(!drop || drop.style.display==='none') return;
+    if(inp && inp.contains(e.target)) return;
+    if(drop && drop.contains(e.target)) return;
+    drop.style.display='none';
+  });
+  // 계약 관리 거래처 검색 드롭다운: 외부 클릭 시 닫기
+  document.addEventListener('click', function(e){
+    var drop = $('ct-client-drop');
+    var inp  = $('ct-client-search');
+    if(!drop || drop.style.display==='none') return;
+    if(inp && inp.contains(e.target)) return;
+    if(drop && drop.contains(e.target)) return;
+    drop.style.display='none';
+  });
+  // 계약 관리 상품 검색 드롭다운: 외부 클릭 시 닫기
+  document.addEventListener('click', function(e){
+    var drop = $('ct-product-drop');
+    var inp  = $('ct-product');
+    if(!drop || drop.style.display==='none') return;
+    if(inp && inp.contains(e.target)) return;
+    if(drop && drop.contains(e.target)) return;
+    drop.style.display='none';
   });
   // select 변경 시 폼 자동 채우기
   $('clientSelect').addEventListener('change', function(){

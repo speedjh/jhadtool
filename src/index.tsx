@@ -211,6 +211,56 @@ app.post('/api/db/files', async (c) => {
   } catch(e: any) { return err(c, e.message) }
 })
 
+// ── contracts (계약 관리) ──────────────────
+app.get('/api/db/contracts', async (c) => {
+  try {
+    const r = await c.env.jhadtool_production.prepare('SELECT * FROM contracts ORDER BY updated_at DESC').all()
+    return ok(c, r.results)
+  } catch(e: any) { return err(c, e.message) }
+})
+app.post('/api/db/contracts', async (c) => {
+  try {
+    const rows = await c.req.json() as any[]
+    const db = c.env.jhadtool_production
+    for (const row of rows) {
+      await db.prepare('INSERT OR REPLACE INTO contracts (id, data, updated_at) VALUES (?, ?, ?)')
+        .bind(row.id, JSON.stringify(row.data), row.updated_at || new Date().toISOString()).run()
+    }
+    return ok(c, { count: rows.length })
+  } catch(e: any) { return err(c, e.message) }
+})
+app.delete('/api/db/contracts/:id', async (c) => {
+  try {
+    await c.env.jhadtool_production.prepare('DELETE FROM contracts WHERE id = ?').bind(c.req.param('id')).run()
+    return ok(c, null)
+  } catch(e: any) { return err(c, e.message) }
+})
+
+// ── products (상품 단가표) ─────────────────
+app.get('/api/db/products', async (c) => {
+  try {
+    const r = await c.env.jhadtool_production.prepare('SELECT * FROM products ORDER BY updated_at DESC').all()
+    return ok(c, r.results)
+  } catch(e: any) { return err(c, e.message) }
+})
+app.post('/api/db/products', async (c) => {
+  try {
+    const rows = await c.req.json() as any[]
+    const db = c.env.jhadtool_production
+    for (const row of rows) {
+      await db.prepare('INSERT OR REPLACE INTO products (id, data, updated_at) VALUES (?, ?, ?)')
+        .bind(row.id, JSON.stringify(row.data), row.updated_at || new Date().toISOString()).run()
+    }
+    return ok(c, { count: rows.length })
+  } catch(e: any) { return err(c, e.message) }
+})
+app.delete('/api/db/products/:id', async (c) => {
+  try {
+    await c.env.jhadtool_production.prepare('DELETE FROM products WHERE id = ?').bind(c.req.param('id')).run()
+    return ok(c, null)
+  } catch(e: any) { return err(c, e.message) }
+})
+
 // ══════════════════════════════════════════
 // POPBILL PROXY
 // ══════════════════════════════════════════
