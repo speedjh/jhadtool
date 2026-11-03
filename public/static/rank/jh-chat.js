@@ -44,12 +44,31 @@ initChat({ api, esc, toast, modal, askText: (msg, dflt = '') => dialog({ msg, in
   histModal: (id) => prevModal(id).catch(e => toast('' + e.message)), rankHtml, delta, won, daysHtml, reportCard, openReport: (p) => window.open(p, '_blank') })
 
 /** showPage('rank-chat') 에서 부른다 */
-window.jhChat = async function () {
+window.jhChat = async function (force) {
   const el = root(); if (!el) return
-  if (el.querySelector('#chatForm')) return            // 쓰던 대화는 그대로 둔다
+  if (!force && el.querySelector('#chatForm')) return            // 쓰던 대화는 그대로 둔다
   el.innerHTML = '<div class="empty" style="padding:40px;text-align:center">불러오는 중…</div>'
-  try { await chatPage(el) }
-  catch (e) { el.innerHTML = `<div class="empty" style="padding:40px;text-align:center">${mascot('warn', 56)}<div>재흥이를 불러오지 못했어요</div><div class="sub">${esc(e.message)}</div></div>` }
+  try { await chatPage(el); addRefresh(el) }
+  catch (e) {
+    el.innerHTML = `<div class="empty" style="padding:40px;text-align:center">${mascot('warn', 56)}<div>재흥이를 불러오지 못했어요</div><div class="sub">${esc(e.message)}</div><div style="margin-top:12px"><button class="btn btn-sm btn-primary" data-jc-reload>다시 불러오기</button></div></div>`
+    el.querySelector('[data-jc-reload]').onclick = () => window.jhChat(true)
+  }
+}
+// 채팅 영역만 새로 불러오기 — F5 없이 회사 PC 가 늦게 보낸 답까지 다시 받아 온다 (적던 글은 남겨 둠)
+function addRefresh(el) {
+  const page = el.querySelector('.chat-page'); if (!page || page.querySelector('.jc-refresh')) return
+  const b = document.createElement('button')
+  b.type = 'button'; b.className = 'btn btn-sm btn-ghost jc-refresh'; b.title = '대화 새로고침'; b.textContent = '↻ 새로고침'
+  b.style.cssText = 'position:absolute;top:8px;right:12px;z-index:5'
+  page.style.position = 'relative'
+  b.onclick = async () => {
+    const draft = el.querySelector('#chatText')?.value || ''
+    b.disabled = true
+    await window.jhChat(true)
+    const ta = el.querySelector('#chatText'); if (ta && draft) ta.value = draft
+    toast('대화를 새로 불러왔어요')
+  }
+  page.prepend(b)
 }
 
 // ---- 어느 화면에서든 오른쪽 아래에 따라다니는 재흥이 버튼 → 누르면 AI 비서 채팅으로 ----

@@ -3459,7 +3459,7 @@ function showPage(name){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   const pg=$('page-'+name), nv=$('nav-'+name);
-  if(pg) pg.classList.add('active');
+  if(pg) { pg.classList.add('active'); try { sessionStorage.setItem(JH_PAGE_KEY, name); } catch(e){} }
   if(nv) nv.classList.add('active');
   // 페이지별 렌더 호출
   if(name==='new-invoice') {
@@ -3562,9 +3562,27 @@ function renderSettingsForm(){
 // ══════════════════════════════════════════
 // AUTH
 // ══════════════════════════════════════════
-async function doLogin(){
-  const id=$('loginId').value.trim(), pw=$('loginPw').value;
-  if(!id||!pw){ $('loginAlert').innerHTML='<div class="alert alert-error">아이디와 비밀번호를 입력해주세요.</div>'; return; }
+// ── 새로고침(F5)해도 로그인 유지: 이 탭에만(sessionStorage) 아이디 + 비밀번호 지문을 남긴다. 탭을 닫거나 로그아웃하면 지워짐
+//    비밀번호가 바뀌면 지문이 안 맞아 다시 로그인해야 한다
+var JH_SESSION_KEY = 'jh_session_v1', JH_PAGE_KEY = 'jh_page_v1';
+async function _pwPrint(id, pw){
+  try {
+    var buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode('jhadtool|' + id + '|' + pw));
+    return Array.from(new Uint8Array(buf)).map(function(b){ return b.toString(16).padStart(2,'0'); }).join('');
+  } catch(e){ return ''; }
+}
+function _readSession(){ try { return JSON.parse(sessionStorage.getItem(JH_SESSION_KEY) || 'null'); } catch(e){ return null; } }
+function _clearSession(){ try { sessionStorage.removeItem(JH_SESSION_KEY); sessionStorage.removeItem(JH_PAGE_KEY); } catch(e){} }
+async function restoreLogin(){
+  var s = _readSession(); if(!s || !s.id || !s.fp) return;
+  $('loginWrap').style.display='none';   // 로그인 화면이 깜빡이지 않게
+  await doLogin({ restore: s });
+}
+
+async function doLogin(opts){
+  var restore = opts && opts.restore;
+  const id = restore ? restore.id : $('loginId').value.trim(), pw = restore ? '' : $('loginPw').value;
+  if(!id||(!pw && !restore)){ $('loginAlert').innerHTML='<div class="alert alert-error">아이디와 비밀번호를 입력해주세요.</div>'; return; }
   const btn=$('loginBtn');
   btn.disabled=true; btn.textContent='로그인 중...';
   $('loginAlert').innerHTML='';
@@ -3648,12 +3666,18 @@ async function doLogin(){
   }
 
   console.log('[Login] 보유 users:', state.users.map(u=>u.id));
-  const user = state.users.find(u => u.id===id && u.pw===pw);
+  var user = null;
+  if(restore){
+    var cand = state.users.find(u => u.id===id);
+    if(cand && await _pwPrint(cand.id, cand.pw) === restore.fp) user = cand;
+  } else user = state.users.find(u => u.id===id && u.pw===pw);
   if(!user){
-    $('loginAlert').innerHTML='<div class="alert alert-error">아이디 또는 비밀번호가 올바르지 않습니다.</div>';
+    if(restore){ _clearSession(); $('loginWrap').style.display='flex'; $('loginAlert').innerHTML='<div class="alert alert-error">로그인이 풀렸어요. 다시 로그인해 주세요.</div>'; }
+    else $('loginAlert').innerHTML='<div class="alert alert-error">아이디 또는 비밀번호가 올바르지 않습니다.</div>';
     btn.disabled=false; btn.textContent='로그인';
     return;
   }
+  if(!restore){ try { var _fp = await _pwPrint(user.id, user.pw); if(_fp) sessionStorage.setItem(JH_SESSION_KEY, JSON.stringify({ id: user.id, fp: _fp })); } catch(e){} }
   state.currentUser = user;
   $('loginWrap').style.display='none';
   $('appWrap').style.display='flex';
@@ -3664,7 +3688,10 @@ async function doLogin(){
   var _navAnalytics = $('nav-analytics');
   if(_navAnalytics) _navAnalytics.style.display = user.role==='admin' ? '' : 'none';
   btn.disabled=false; btn.textContent='로그인';
+  // 새로고침이면 보던 화면으로 돌아간다 (initApp 이 대시보드를 열며 덮어쓰기 전에 읽어 둠)
+  var _pg = null; if(restore){ try { _pg = sessionStorage.getItem(JH_PAGE_KEY); } catch(e){} }
   initApp();
+  if(_pg && _pg!=='dashboard' && $('page-'+_pg)) showPage(_pg);
 }
 
 // ── 실시간 동기화
@@ -3748,6 +3775,7 @@ async function loadFromDB_safe() {
 }
 function doLogout(){
   stopSync();
+  _clearSession();
   state.currentUser=null; $('loginWrap').style.display='flex'; $('appWrap').style.display='none';
 }
 
@@ -8666,12 +8694,15 @@ async function loadPopbillTransfers(){
         if(e>now) e=now;
         return [{ sDate: fmtD(s), eDate: fmtD(e) }];
       } else {
-        // 필터 없음 → 이번 달 1일~오늘
+        // 필터 없음 → 이번 달 1일~오늘 (월초에는 전월 말일 입금 누락 방지를 위해 최근 7일까지 확장)
         var s2=new Date(now.getFullYear(),now.getMonth(),1);
+        var s7=new Date(now.getFullYear(),now.getMonth(),now.getDate()-7);
+        if(s7<s2) s2=s7;
         return [{ sDate: fmtD(s2), eDate: fmtD(now) }];
       }
     })();
     var allTx=[];
+    var failedJobs=0; // 수집 실패 건수 (조용히 '최신 상태'로 표시되는 문제 방지)
 
     for(var i=0;i<accounts.length;i++){
       var acc=accounts[i];
@@ -8686,14 +8717,14 @@ async function loadPopbillTransfers(){
       var r2=await pbFetch({linkId:lid,secretKey:sk,corpNum,userId,env,action:'requestJob',
         payload:{bankCode:bCode,accountNumber:bNum,sDate,eDate}});
       console.log('[팝빌] requestJob:', r2.status, JSON.stringify(r2.data));
-      if(!r2.ok){ console.warn('[팝빌] RequestJob 실패 상세:', JSON.stringify(r2.data)); continue; }
+      if(!r2.ok){ console.warn('[팝빌] RequestJob 실패 상세:', JSON.stringify(r2.data)); failedJobs++; continue; }
       var jobId=r2.data.jobID||r2.data.jobId||'';
-      if(!jobId){ console.warn('[팝빌] jobID 없음:', r2.data); continue; }
+      if(!jobId){ console.warn('[팝빌] jobID 없음:', r2.data); failedJobs++; continue; }
 
-      // 3단계: JobState 폴링 (최대 10초 대기)
+      // 3단계: JobState 폴링 (최대 30초 대기)
       var done=false;
       var skipReason='';
-      for(var t=0;t<10;t++){
+      for(var t=0;t<30;t++){
         await new Promise(function(r){setTimeout(r,1000);});
         var r3=await pbFetch({linkId:lid,secretKey:sk,corpNum,userId,env,action:'getJobState',payload:{jobId}});
         var jState=Number(r3.data.jobState);
@@ -8724,6 +8755,7 @@ async function loadPopbillTransfers(){
           toast('크레딧 부족: 팝빌 크레딧을 충전하거나 30분 후 다시 시도해주세요.', 'warning');
         }
         console.warn('[팝빌] 수집 실패/타임아웃 jobId='+jobId+(skipReason?' → '+skipReason:''));
+        failedJobs++;
         continue;
       }
 
@@ -8739,6 +8771,7 @@ async function loadPopbillTransfers(){
       }
       if(!r4.ok){
         console.warn('[팝빌] search 실패 ('+r4.status+'):', JSON.stringify(r4.data).slice(0,200));
+        failedJobs++;
         continue;
       }
       var txList=r4.data.list||r4.data.transList||(Array.isArray(r4.data)?r4.data:[]);
@@ -8860,7 +8893,11 @@ async function loadPopbillTransfers(){
       ? '✅ 신규 입금 '+added+'건 저장 완료 ('+_rangeDesc+' 조회, 기존 '+skipped+'건 유지)'
       : '이미 최신 상태입니다 ('+_rangeDesc+' 조회 '+allTx.length+'건 — 신규 없음, 기존 '+skipped+'건 보존)';
     console.log('[팝빌] 완료:', msg);
-    toast(msg, added>0?'success':'info');
+    if(failedJobs>0 && added===0){
+      toast('⚠️ 팝빌 거래내역 수집 실패 '+failedJobs+'건 — "최신 상태"가 아닙니다. 잠시 후 다시 시도해주세요 (30분 재수집 제한/크레딧 확인)','warning');
+    } else {
+      toast(msg + (failedJobs>0 ? ' (일부 수집 실패 '+failedJobs+'건)' : ''), added>0?'success':'info');
+    }
 
   } catch(e){
     console.error('[팝빌 오류]',e);
@@ -10477,6 +10514,7 @@ document.addEventListener('DOMContentLoaded', function() {
   $('loginBtn').addEventListener('click', doLogin);
   $('loginPw').addEventListener('keydown', e=>{ if(e.key==='Enter') doLogin(); });
   $('logoutBtn').addEventListener('click', doLogout);
+  restoreLogin();
 
   // Global delegation
   document.addEventListener('click', function(e) {
